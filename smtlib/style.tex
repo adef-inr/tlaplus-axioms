@@ -1,0 +1,108 @@
+% file: contents/style.tex
+
+% Mathematical notations {{{1
+
+% Constants
+\newcommand*{\idv}{\iota}
+\newcommand*{\fcn}{\mathsf{fcn}}
+\renewcommand*{\int}{\mathsf{int}}
+
+% Operators
+\newcommand{\defop}[2]{\expandafter\def\csname op#1\endcsname{\mathsf{#2}} }
+
+\defop{Cast}{cast}
+\defop{Proj}{proj}
+
+\defop{Choose}{choose}
+
+\defop{Mem}{in}
+\defop{Subseteq}{subseteq}
+\defop{Enum}{enum}
+\defop{Empty}{empty}
+\defop{Power}{subset}
+\defop{Union}{union}
+\defop{Setst}{setst}
+\defop{Setof}{setof}
+\defop{Cup}{cup}
+\defop{Cap}{cap}
+\defop{Setminus}{setminus}
+
+\defop{Strlit}{str}
+\defop{String}{String}
+\defop{Boolean}{Boolean}
+
+\defop{Isafcn}{isafcn}
+\defop{Asfcn}{asfcn}
+\defop{Arrow}{arrow}
+\defop{App}{fcnapp}
+\defop{Dom}{domain}
+\defop{Fcn}{fcn}
+\defop{Except}{except}
+
+\defop{Int}{Int}
+\defop{Nat}{Nat}
+\defop{Intlit}{num}
+\defop{Plus}{plus}
+\defop{Uminus}{uminus}
+\defop{Minus}{minus}
+\defop{Times}{times}
+\defop{Div}{div}
+\defop{Exp}{exp}
+\defop{Le}{lteq}
+\defop{Range}{range}
+
+\defop{Tup}{tup}
+\defop{Prod}{product}
+
+\defop{Record}{record}
+\defop{Rect}{rect}
+
+\defop{Seq}{seq}
+\defop{Len}{len}
+\defop{Cat}{cat}
+\defop{Append}{append}
+\defop{Head}{head}
+\defop{Tail}{tail}
+\defop{Subseq}{subseq}
+\defop{Selectseq}{selectseq}
+
+% Infix
+\newcommand*{\imp}{\Rightarrow}
+\newcommand*{\eqv}{\Leftrightarrow}
+\newcommand*{\arr}{\rightarrow}
+
+% Enclosing
+\newcommand*{\parens}[1]{\left( #1 \right)}
+\newcommand*{\st}[1]{\left\{ #1 \right\}}
+\newcommand*{\mkstr}[1]{\mathtt{"#1"}}
+
+% Theorem notations {{{1
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+
+\theoremstyle{remark}
+\newtheorem*{rem}{Remark}
+\newtheorem*{eg}{Example}
+
+% Misc {{{1
+
+% Acronyms
+\newcommand*{\TLA}{{TLA\textsuperscript{+}}\xspace}
+
+% Special
+\newcommand*{\TODO}{\textsc{\textcolor{red}{Todo}}\xspace}
+
+% Format for listing axioms
+\newlist{axioms}{description}{1}
+\setlist[axioms]{align=left,font=\sc,labelsep=1.5em,labelwidth=\textwidth}
+
+% }}}
+
+% end of file

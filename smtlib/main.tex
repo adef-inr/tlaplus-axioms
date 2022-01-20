@@ -1,0 +1,1152 @@
+% file: main.tex
+\documentclass[11pt, a4paper, oneside]{article}
+
+% Common libraries
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex]{hyperref}
+
+% Formatting libraries
+\usepackage{a4wide}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+% Mathematical libraries
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{colonequals}
+\usepackage{stmaryrd}
+\usepackage{bussproofs}
+
+% Graphical libraries
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+
+\input{style}
+
+% Basic info
+\title{A First-Order Axiomatization of \TLA with Sorts and Triggers}
+\author{Antoine Defourné}
+\date{}
+
+\begin{document}
+
+%\maketitle
+\pagestyle{empty}
+
+\section{Purpose and Conventions}
+
+The purpose of this document is to serve as a reference on the axioms that TLAPS uses for formalizing \TLA in the language SMT-LIB.  We provide the list of functions that can be declared in the SMT-LIB output (section~\ref{sec:operators}), followed by the list of axioms (section~\ref{sec:axioms}).  The list of axioms can be split in two parts; the first part does not use the native sort~$\int$ of SMT-LIB, and contains epsilon-calculus and set theory (sub-section~\ref{subsec:epsilon_and_sets}), functions (sub-section~\ref{subsec:functions}), integer arithmetic (sub-section~\ref{subsec:ints_uninterpreted}), booleans and strings (sub-section~\ref{subsec:bools_and_strings}), tuples and records (sub-section~\ref{subsec:tups_and_recs}), sequences (sub-section~\ref{subsec:seqs}); the second part does feature the sort~$\int$, and contains integer arithmetic (sub-section~\ref{subsec:ints_interpreted}) and sequences (sub-section~\ref{subsec:seqs_interpreted}).
+
+We present axioms as closed formulas of multi-sorted first-order logic, adopting the usual syntax for mathematics rather than the syntax of SMT-LIB:
+\begin{axioms}
+\item[SetExtensionality] \[
+        \forall a^\idv \forall b^\idv.\, (\forall z^\idv.\, \opMem(z, a) \eqv \opMem(z, b)) \imp a = b
+    \]
+
+\end{axioms}
+
+Many axioms are actually axioms schemas, expecting one or several parameters.  A parameter can be a natural number~$n$, a positive number~$p$, a string~$s$, or a function~$F$~or~$P$.  Any parameter will be indicated in parenthesis after the name of the axiom.
+
+We specify, for each declared function~$f$, its type with the notation $f : s_1 \times \cdots \times s_n \arr s$.  The vast majority of functions only feature the sort~$\idv$ (individuals) in their type, which is the only non-native sort we will consider.  For all $n \ge 0$, the notation $s^n$ on the left of an arrow is short for the product $s \times \cdots \times s$ with~$n$ occurrences of~$s$.  If $n = 0$, then $s^n \arr s'$ is just~$s'$.
+
+Our presentation actually includes second-order functions, such as this one:
+\begin{align*}
+    \opSetst &: \idv \times (\idv \arr o) \arr \idv
+\end{align*}
+This has the benefit of improving the presentation for axiom schemas that expect a function parameter:
+\begin{axioms}
+\item[SetstDef ($P : \idv \arr o$)] \[
+        \forall a^\idv \forall x^\idv.\, \opMem(x, \opSetst(a, P)) \eqv \opMem(x, a) \wedge P(x)
+    \]
+
+\end{axioms}
+
+We emphasize that this is only a matter of presentation, and that it can be translated to a purely first-order presentation if necessary.  The alternative presentation would specify the following schema of functions:
+\begin{align*}
+    \opSetst_P &: \idv^{n+1} \arr \idv  \qquad\text{where $n \ge 0$ and $P : \idv^{n+1} \arr o$}
+\end{align*}
+And the axiom schema:
+\begin{axioms}
+\item[SetstDef ($n \ge 0$, $P : \idv^{n+1} \arr o$)] \[
+        \forall c_1^\idv \dots \forall c_n^\idv \forall a^\idv \forall x^\idv.\, \opMem(x, \opSetst_P(a, c_1, \dots, c_n)) \eqv \opMem(x, a) \wedge P(c_1, \dots, c_n, x)
+    \]
+
+\end{axioms}
+
+Most axioms are specified with one or several SMT-LIB patterns.  Those patterns do not change the meaning of the formulas themselves, but they are typically interpreted by SMT solvers to generate instances of universally quantified formulas.  The general notation is:
+\[
+    \begin{aligned}
+        &\forall x_1 \dots \forall x_n.\, \begin{aligned}[t]
+            &\st{ t_{1,1}, \dots, t_{1,n_1} } \\
+            &\dots \\
+            &\st{ t_{m,1}, \dots, t_{m,n_m} }
+        \end{aligned} \\
+        &\qquad \phi
+    \end{aligned}
+\]
+Where for all $1 \le i \le m$, $\st{ t_{i,1}, \dots, t_{i,n_i} }$ is a set of terms, the free variables of which are exactly $x_1,\dots,x_n$.  The intuitive meaning of such a pattern is that, if a set of ground terms $t_{i,1}\sigma, \dots, t_{i,n_i}\sigma$ is known at some point of the execution, then the ground assignement~$\sigma$ is a good instance for the axiom (the closed formula~$\phi\sigma$ should be derived).
+
+We will use the notation $\overline{a}$ for comma-separated lists $a_1,\dots,a_n$.  It will always be clear, from the context, what is the underlying length~$n$ of such a list.  In particular, $\forall \overline{x}^s$ means $\forall x_1^s \dots \forall x_n^s$.
+
+We will also follow \TLA's notation for multiline conjunctions.  Lines with the same indentation starting with a~$\wedge$ are components of the same conjunction:
+\begin{gather*}
+    \begin{aligned}
+        &\wedge \phi_1 \\
+        &\wedge \dots \\
+        &\wedge \phi_n \\
+        &\imp \phi
+    \end{aligned}
+    \qquad\text{is equivalent to}\qquad
+    \begin{aligned}
+        &(\phi_1 \wedge \dots \wedge \phi_n) \\
+        &\quad \imp \phi
+    \end{aligned}
+\end{gather*}
+
+
+\section{Operators}
+\label{sec:operators}
+
+
+    \subsection{Epsilon-Calculus, Set Theory, Functions and Arithmetic}
+
+\begin{minipage}[t]{.5\textwidth}
+    \begin{align*}
+        \opChoose       &: (\idv \arr o) \arr \idv \\
+        \\
+        \opMem          &: \idv \times \idv \arr o \\
+        \opSubseteq     &: \idv \times \idv \arr o \\
+        \opEnum_n       &: \idv^n \arr \idv \\
+        \opPower        &: \idv \arr \idv \\
+        \opUnion        &: \idv \arr \idv \\
+        \opSetst        &: \idv \times (\idv \arr o) \arr \idv \\
+        \opSetof_p      &: \idv^p \times (\idv^p \arr \idv) \arr \idv \\
+        \opCup          &: \idv \times \idv \\
+        \opCap          &: \idv \times \idv \\
+        \opSetminus     &: \idv \times \idv
+    \end{align*}
+\end{minipage}%
+\begin{minipage}[t]{.5\textwidth}
+    \begin{align*}
+        \opIsafcn       &: \idv \arr o \\
+        \opArrow        &: \idv \times \idv \arr \idv \\
+        \opFcn          &: \idv \times (\idv \arr \idv) \arr \idv \\
+        \opExcept       &: \idv \times \idv \times \idv \arr \idv \\
+        \opApp          &: \idv \times \idv \arr \idv \\
+        \opDom          &: \idv \arr \idv \\
+        \\
+        \opInt          &: \idv \\
+        \opNat          &: \idv \\
+        \opIntlit_n     &: \idv \\
+        \opPlus         &: \idv \times \idv \arr \idv \\
+        \opUminus       &: \idv \arr \idv \\
+        \opMinus        &: \idv \times \idv \arr \idv \\
+        \opTimes        &: \idv \times \idv \arr \idv \\
+        \opDiv          &: \idv \times \idv \arr \idv \\
+        \opLe           &: \idv \times \idv \arr o \\
+        \opRange        &: \idv \times \idv \arr \idv
+    \end{align*}
+\end{minipage}
+
+
+    \subsection{Booleans, Strings, Tuples, Records and Sequences}
+
+\begin{minipage}[t]{.5\textwidth}
+    \begin{align*}
+        \opBoolean      &: \idv \\
+        \opCast_o       &: o \arr \idv \\
+        \\
+        \opString       &: \idv \\
+        \opStrlit_s     &: \idv \\
+        \\
+        \opProd_n       &: \idv^n \times \idv \arr \idv \\
+        \opTup_n        &: \idv^n \times \idv \arr \idv \\
+        \\
+        \opRecord_{s_1,\dots,s_p} &: \idv^p \times \idv \arr \idv \\
+        \opRect_{s_1,\dots,s_p}   &: \idv^p \times \idv \arr \idv \\
+    \end{align*}
+\end{minipage}%
+\begin{minipage}[t]{.5\textwidth}
+    \begin{align*}
+        \opSeq          &: \idv \arr \idv \\
+        \opLen          &: \idv \arr \idv \\
+        \opCat          &: \idv \times \idv \arr \idv \\
+        \opAppend       &: \idv \times \idv \arr \idv \\
+        \opHead         &: \idv \arr \idv \\
+        \opTail         &: \idv \arr \idv \\
+        \opSubseq       &: \idv \times \idv \times \idv \arr \idv \\
+        \opSelectseq    &: \idv \times (\idv \arr o) \arr \idv
+    \end{align*}
+\end{minipage}
+
+
+    \subsection{Interpreted Arithmetic}
+
+Except for~$\opCast_\int$ and~$\opProj_\int$, every operator below is declared implicitly by SMT.
+
+\begin{align*}
+    \opCast_\int    &: \int \arr \idv \\
+    \opProj_\int    &: \idv \arr \int \\
+    0,1,2,\dots     &: \int \\
+    +               &: \int \times \int \arr \int \\
+    -               &: \int \arr \int \\
+    -               &: \int \times \int \arr \int \\
+    \times          &: \int \times \int \arr \int \\
+    \div            &: \int \times \int \arr \int \\
+    \le             &: \int \times \int \arr o \\
+    <               &: \int \times \int \arr o \\
+    \ge             &: \int \times \int \arr o \\
+    >               &: \int \times \int \arr o \\
+\end{align*}
+
+
+\newpage
+\section{Axioms}
+\label{sec:axioms}
+
+    \subsection{Epsilon-Calculus and Set Theory}
+    \label{subsec:epsilon_and_sets}
+
+\begin{axioms}
+\item[ChooseDef ($P : \idv \arr o$)] \[
+        \forall x^\idv.\, P(x) \imp P(\opChoose(P))
+    \]
+
+\item[SetExtensionality] \[
+        \forall a^\idv \forall b^\idv.\, (\forall z^\idv.\, \opMem(z, a) \eqv \opMem(z, b)) \imp a = b
+    \]
+
+\item[SubseteqIntro] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opSubseteq(a, b) } \\
+            &\qquad (\forall z^\idv.\, \opMem(z, a) \imp \opMem(z, b)) \imp \opSubseteq(a, b)
+        \end{aligned}
+    \]
+
+\item[SubseteqElim] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv.\, \st{ \opSubseteq(a, b), \opMem(x, a) } \\
+            &\qquad \opSubseteq(a, b) \wedge \opMem(x, a) \imp \opMem(x, b)
+        \end{aligned}
+    \]
+
+\item[EnumIntro ($n > 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
+            &\qquad \opMem(a_1, \opEnum_n(\overline{a})) \wedge \dots \wedge \opMem(a_n, \opEnum_n(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[EnumElim ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall x^\idv.\, \st{ \opMem(x, \opEnum_n(\overline{a})) } \\
+            &\qquad \opMem(x, \opEnum_n(\overline{a})) \imp x = a_1 \vee \dots \vee x = a_n
+        \end{aligned}
+    \]
+
+\item[SubsetDef] \[
+        \begin{aligned}
+            &\forall a^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(x, \opPower(a)) } \\
+                &\st{ \opSubseteq(x, a), \opPower(a) }
+            \end{aligned} \\
+            &\qquad \opMem(x, \opPower(a)) \eqv \opSubseteq(x, a)
+        \end{aligned}
+    \]
+
+\item[UnionIntro] \[
+        \begin{aligned}
+            &\forall a^\idv \forall x^\idv \forall y^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(y, a), \opMem(x, \opUnion(a)) } \\
+                &\st{ \opMem(x, y), \opMem(x, \opUnion(a)) } \\
+                &\st{ \opMem(x, y), \opMem(y, a), \opUnion(a) }
+            \end{aligned} \\
+            &\qquad \opMem(x, y) \wedge \opMem(y, a) \imp \opMem(x, \opUnion(a))
+        \end{aligned}
+    \]
+
+\item[UnionElim] \[
+        \begin{aligned}
+            &\forall a^\idv \forall x^\idv.\, \st{ \opMem(x, \opUnion(a)) } \\
+            &\qquad \opMem(x, \opUnion(a)) \imp \exists y^\idv.\, \opMem(x, y) \wedge \opMem(y, a)
+        \end{aligned}
+    \]
+
+\item[SetstDef ($P : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall a^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(x, \opSetst(a, P)) } \\
+                &\st{ \opMem(x, a), \opSetst(a, P) }
+            \end{aligned} \\
+            &\qquad \opMem(x, \opSetst(a, P)) \eqv \opMem(x, a) \wedge P(x)
+        \end{aligned}
+    \]
+
+\item[SetofIntro ($p > 0$, $F : \idv^p \arr \idv$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall \overline{y}^\idv.\, \st{ F(\overline{y}), \opSetof_p(\overline{a}, F) } \\
+            &\qquad \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_p, a_p) \imp \opMem(F(\overline{y}), \opSetof_p(\overline{a}, F))
+        \end{aligned}
+    \]
+
+\item[SetofElim ($p > 0$, $F : \idv^p \arr \idv$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \overline{x}^\idv.\, \st{ \opMem(x, \opSetof_p(\overline{a}, F)) } \\
+            &\qquad \opMem(x, \opSetof_p(\overline{a}, F)) \imp \exists \overline{y}^\idv.\, \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_p, a_p) \wedge x = F(\overline{y})
+        \end{aligned}
+    \]
+
+\item[CupDef] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(x, \opCup(a, b)) } \\
+                &\st{ \opMem(x, a), \opCup(a, b) } \\
+                &\st{ \opMem(x, b), \opCup(a, b) }
+            \end{aligned} \\
+            &\qquad \opMem(x, \opCup(a, b)) \eqv \opMem(x, a) \vee \opMem(x, b)
+        \end{aligned}
+    \]
+
+\item[CapDef] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(x, \opCap(a, b)) } \\
+                &\st{ \opMem(x, a), \opCap(a, b) } \\
+                &\st{ \opMem(x, b), \opCap(a, b) }
+            \end{aligned} \\
+            &\qquad \opMem(x, \opCap(a, b)) \eqv \opMem(x, a) \wedge \opMem(x, b)
+        \end{aligned}
+    \]
+
+\item[SetminusDef] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(x, \opSetminus(a, b)) } \\
+                &\st{ \opMem(x, a), \opSetminus(a, b) } \\
+                &\st{ \opMem(x, b), \opSetminus(a, b) }
+            \end{aligned} \\
+            &\qquad \opMem(x, \opSetminus(a, b)) \eqv \opMem(x, a) \wedge \neg \opMem(x, b)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Functions}
+    \label{subsec:functions}
+
+\begin{axioms}
+\item[FcnExtensionality] \[
+        \begin{aligned}
+            &\forall f^\idv \forall g^\idv.\, \st{ \opIsafcn(f), \opIsafcn(g) } \\
+            &\qquad \wedge \opIsafcn(f) \\
+            &\qquad \wedge \opIsafcn(g) \\
+            &\qquad \wedge \opDom(f) = \opDom(g) \\
+            &\qquad \wedge (\forall x^\idv.\, \opMem(x, \opDom(f)) \imp \opApp(f, x) = \opApp(g, x)) \\
+            &\qquad \imp f = g
+        \end{aligned}
+    \]
+
+\item[FcnIsafcn ($F : \idv \arr \idv$)] \[
+        \begin{aligned}
+            &\forall a^\idv.\, \st{ \opFcn(a, F) } \\
+            &\qquad \opIsafcn(\opFcn(a, F))
+        \end{aligned}
+    \]
+
+\item[FcnDom ($F : \idv \arr \idv$)] \[
+        \begin{aligned}
+            &\forall a^\idv.\, \st{ \opFcn(a, F) } \\
+            &\qquad \opDom(\opFcn(a, F)) = a
+        \end{aligned}
+    \]
+
+\item[FcnApp ($F : \idv \arr \idv$)] \[
+        \begin{aligned}
+            &\forall a^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opApp(\opFcn(a, F), x) } \\
+                &\st{ \opMem(x, a), \opFcn(a, F) }
+            \end{aligned} \\
+            &\qquad \opMem(x, a) \imp \opApp(\opFcn(a, F), x) = F(x)
+        \end{aligned}
+    \]
+
+\item[ArrowIntro] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall f^\idv.\, \st{ \opMem(f, \opArrow(a, b)) } \\
+            &\qquad \wedge \opIsafcn(f) \\
+            &\qquad \wedge \opDom(f) = a \\
+            &\qquad \wedge (\forall x^\idv.\, \opMem(x, a) \imp \opMem(\opApp(f, x), b)) \\
+            &\qquad \imp \opMem(f, \opArrow(a, b))
+        \end{aligned}
+    \]
+
+\item[ArrowElim$_1$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall f^\idv.\, \st{ \opMem(f, \opArrow(a, b)) } \\
+            &\qquad \opMem(f, \opArrow(a, b)) \imp \begin{aligned}[t]
+                &\wedge \opIsafcn(f) \\
+                &\wedge \opDom(f) = a
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[ArrowElim$_2$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall f^\idv \forall x^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(f, \opArrow(a, b)), \opMem(x, a) } \\
+                &\st{ \opMem(f, \opArrow(a, b)), \opApp(f, x) }
+            \end{aligned} \\
+            &\qquad \opMem(f, \opArrow(a, b)) \wedge \opMem(x, a) \imp \opMem(\opApp(f, x), b)
+        \end{aligned}
+    \]
+
+\item[ExceptIsafcn] \[
+        \begin{aligned}
+            &\forall f^\idv \forall x^\idv \forall y^\idv.\, \st{ \opExcept(f, x, y) } \\
+            &\qquad \opIsafcn(\opExcept(f, x, y))
+        \end{aligned}
+    \]
+
+\item[ExceptDom] \[
+        \begin{aligned}
+            &\forall f^\idv \forall x^\idv \forall y^\idv.\, \st{ \opExcept(f, x, y) } \\
+            &\qquad \opDom(\opExcept(f, x, y)) = \opDom(f)
+        \end{aligned}
+    \]
+
+\item[ExceptApp$_1$] \[
+        \begin{aligned}
+            &\forall f^\idv \forall x^\idv \forall y^\idv.\, \st{ \opExcept(f, x, y) } \\
+            &\qquad \opMem(x, \opDom(f)) \imp \opApp(\opExcept(f, x, y), x) = y
+        \end{aligned}
+    \]
+
+\item[ExceptApp$_2$] \[
+        \begin{aligned}
+            &\forall f^\idv \forall x^\idv \forall y^\idv \forall z^\idv.\, \begin{aligned}[t]
+                &\st{ \opApp(\opExcept(f, x, y), z) } \\
+                &\st{ \opExcept(f, x, y), \opApp(f, z) }
+            \end{aligned} \\
+            &\qquad \opMem(z, \opDom(f)) \wedge z \neq x \imp \opApp(\opExcept(f, x, y), z) = \opApp(f, z)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Integer Arithmetic (Uninterpreted)}
+    \label{subsec:ints_uninterpreted}
+
+We omit the axioms that define the theory of arithmetic itself, because we would rather encode the arithmetical expressions of \TLA into the interpreted sort~$\int$, where the axioms are implicitly implemented by the solvers.  For now, it suffices to assume that an interpreted theory~$T^\int$ exists, and that \TLA admits the theory $T \triangleq R(T^\int)$, where the transformation~$R$ is defined by: \[
+    R(\forall x^\int.\, e) \triangleq \forall x^\idv.\, \opMem(x, \opInt) \imp e
+\] The only axioms not included in~$T$ are those that define~$\opInt$, $\opNat$ and $\opRange$.
+
+\begin{axioms}
+\item[NumTyping ($n \ge 0$)] \[
+        \opMem(\opIntlit_n, \opNat)
+    \]
+
+\item[PlusTyping] \[
+        \begin{aligned}
+            &\forall x^\idv \forall y^\idv.\, \st{ \opPlus(x, y) } \\
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \imp \opMem(\opPlus(x, y), \opInt)
+        \end{aligned}
+    \]
+
+\item[UminusTyping] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opUminus(x) } \\
+            &\qquad \opMem(x, \opInt) \imp \opMem(\opUminus(x), \opInt)
+        \end{aligned}
+    \]
+
+\item[MinusTyping] \[
+        \begin{aligned}
+            &\forall x^\idv \forall y^\idv.\, \st{ \opMinus(x, y) } \\
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \imp \opMem(\opMinus(x, y), \opInt)
+        \end{aligned}
+    \]
+
+\item[TimesTyping] \[
+        \begin{aligned}
+            &\forall x^\idv \forall y^\idv.\, \st{ \opTimes(x, y) } \\
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \imp \opMem(\opTimes(x, y), \opInt)
+        \end{aligned}
+    \]
+
+\item[DivTyping] \[
+        \begin{aligned}
+            &\forall x^\idv \forall y^\idv.\, \st{ \opDiv(x, y) } \\
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \wedge y \neq \opIntlit_0 \imp \opMem(\opDiv(x, y), \opInt)
+        \end{aligned}
+    \]
+
+\item[NatDef] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opMem(x, \opNat) } \\
+            &\qquad \opMem(x, \opNat) \eqv \opMem(x, \opInt) \wedge \opLe(\opIntlit_0, x)
+        \end{aligned}
+    \]
+
+\item[RangeDef] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv.\, \st{ \opMem(x, \opRange(a, b)) } \\
+            &\qquad \opMem(x, \opRange(a, b)) \eqv \opMem(x, \opInt) \wedge \opLe(a, x) \wedge \opLe(x, b)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Booleans and Strings}
+    \label{subsec:bools_and_strings}
+
+\begin{axioms}
+\item[BooleanIntro] \[
+        \begin{aligned}
+            \opMem(\opCast_o(\top), \opBoolean) \wedge \opMem(\opCast_o(\bot), \opBoolean)
+        \end{aligned}
+    \]
+
+\item[BooleanElim] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opMem(x, \opBoolean) } \\
+            &\qquad \opMem(x, \opBoolean) \imp x = \opCast_o(\top) \vee x = \opCast_o(\bot)
+        \end{aligned}
+    \]
+
+\item[StringIntro ({\rm$s$~is a string})] \[
+        \opMem(\opStrlit_s, \opString)
+    \]
+
+\item[StringsDistinct ({\rm$s_1$~and~$s_2$ are two distinct strings})] \[
+        \opStrlit_{s_1} \neq \opStrlit_{s_2}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Tuples and Records}
+    \label{subsec:tups_and_recs}
+
+\begin{axioms}
+\item[TupIsafcn ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
+            &\qquad \opIsafcn(\opTup_n(\overline{x}))
+        \end{aligned}
+    \]
+
+\item[TupDom ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
+            &\qquad \opDom(\opTup_n(\overline{x})) = \opEnum_n(\opIntlit_1, \dots, \opIntlit_n)
+        \end{aligned}
+    \]
+
+\item[TupApp ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
+            &\qquad \wedge \opApp(\opTup_n(\overline{x}), \opIntlit_1) = x_1 \\
+            &\qquad \wedge \dots \\
+            &\qquad \wedge \opApp(\opTup_n(\overline{x}), \opIntlit_n) = x_n
+        \end{aligned}
+    \]
+
+\item[ProductIntro ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}), \opProd_n(\overline{a}) } \\
+            &\qquad \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_n, a_n) \imp \opMem(\opTup_n(\overline{x}), \opProd_n(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[ProductElim ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall x^\idv.\, \st{ \opMem(x, \opProd_n(\overline{a})) } \\
+            &\qquad \opMem(x, \opProd_n(\overline{a})) \imp x = \opTup_n(\opApp(x, \opIntlit_1), \dots, \opApp(x, \opIntlit_n))
+        \end{aligned}
+    \]
+
+\item[RecordIsafcn (\rm$s_1,\dots,s_p$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
+            &\qquad \opIsafcn(\opRect_{\overline{s}}(\overline{x}))
+        \end{aligned}
+    \]
+
+\item[RecordDom (\rm$s_1,\dots,s_p$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
+            &\qquad \opDom(\opRect_{\overline{s}}(\overline{x})) = \opEnum_p(\opStrlit_{s_1}, \dots, \opStrlit_{s_p})
+        \end{aligned}
+    \]
+
+\item[RecordApp (\rm$s_1,\dots,s_p$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
+            &\qquad \wedge \opApp(\opRect_{\overline{s}}(\overline{x}), \opStrlit_{s_1}) = x_1 \\
+            &\qquad \wedge \dots \\
+            &\qquad \wedge \opApp(\opRect_{\overline{s}}(\overline{x}), \opStrlit_{s_p}) = x_p
+        \end{aligned}
+    \]
+
+\item[RectIntro (\rm$s_1,\dots,s_p$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}), \opRecord_{\overline{s}}(\overline{a}) } \\
+            &\qquad \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_n, a_n) \imp \opMem(\opRect_{\overline{s}}(\overline{x}), \opRecord_{\overline{s}}(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[RectElim (\rm$s_1,\dots,s_p$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv \forall x^\idv.\, \st{ \opMem(x, \opRecord_{\overline{s}}(\overline{a}) } \\
+            &\qquad \opMem(x, \opRecord_{\overline{s}}(\overline{a})) \imp x = \opRect_{\overline{s}}(\opApp(x, \opStrlit_{s_1}), \dots, \opApp(x, \opStrlit_{s_n}))
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Sequences}
+    \label{subsec:seqs}
+
+\begin{axioms}
+\item[SeqIntro] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)) } \\
+            &\qquad \wedge \opIsafcn(s) \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \forall i^\idv.\, \opMem(i, \opDom(s)) \eqv \opMem(i, \opInt) \wedge \opLe(\opIntlit_1, i) \wedge \opLe(i, \opLen(s)) \\
+            &\qquad \wedge \forall i^\idv.\, \opMem(i, \opInt) \wedge \opLe(\opIntlit_1, i) \wedge \opLe(i, \opLen(s)) \imp \opMem(\opApp(s, i), a) \\
+            &\qquad \imp \opMem(s, \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[SeqElim$_1$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)) } \\
+            &\qquad \opMem(s, \opSeq(a)) \imp \begin{aligned}[t]
+                &\wedge \opIsafcn(s) \\
+                &\wedge \opMem(\opLen(s), \opNat) \\
+                &\wedge \opDom(s) = \opRange(\opIntlit_1, \opLen(s))
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[SeqElim$_2$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall i^\idv.\, \st{ \opMem(s, \opSeq(a)), \opApp(s, i) } \\
+            &\qquad \opMem(s, \opSeq(a)) \wedge \opMem(i, \opInt) \wedge \opLe(\opIntlit_1, i) \wedge \opLe(i, \opLen(s)) \imp \opMem(\opApp(s, i), a)
+        \end{aligned}
+    \]
+
+\item[LenDef] \[
+        \forall s^\idv \forall x^\idv.\, \opMem(x, \opNat) \wedge \opDom(s) = \opRange(\opIntlit_1, x) \imp \opLen(s) = x
+    \]
+
+\item[CatTyping] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall t^\idv.\, \begin{aligned}[t]
+                &\st{ \opMem(s, \opSeq(a)), \opCat(s, t) } \\
+                &\st{ \opMem(t, \opSeq(a)), \opCat(s, t) }
+            \end{aligned} \\
+            &\qquad \opMem(s, \opSeq(a)) \wedge \opMem(t, \opSeq(a)) \imp \opMem(\opCat(s, t), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[CatLen] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv.\, \st{ \opCat(s, t) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \wedge \opMem(\opLen(t), \opNat) \imp \opLen(\opCat(s, t)) = \opPlus(\opLen(s), \opLen(t))
+        \end{aligned}
+    \]
+
+\item[CatApp$_1$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv \forall i^\idv.\, \begin{aligned}[t]
+                &\st{ \opApp(\opCat(s, t), i) } \\
+                &\st{ \opCat(s, t), \opApp(s, i) }
+            \end{aligned} \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opMem(\opLen(t), \opNat) \\
+            &\qquad \wedge \opMem(i, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, i) \\
+            &\qquad \wedge \opLe(i, \opLen(s)) \\
+            &\qquad \imp \opApp(\opCat(s, t), i) = \opApp(s, i)
+        \end{aligned}
+    \]
+
+\item[CatApp$_2$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv \forall i^\idv.\, \st{ \opApp(\opCat(s, t), i) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opMem(\opLen(t), \opNat) \\
+            &\qquad \wedge \opMem(i, \opInt) \\
+            &\qquad \wedge \opLe(i, \opPlus(\opLen(s), \opLen(t))) \\
+            &\qquad \wedge \opLe(\opLen(s), i) \\
+            &\qquad \wedge \opLen(s) \neq i \\
+            &\qquad \imp \opApp(\opCat(s, t), i) = \opApp(t, \opMinus(i, \opLen(s)))
+        \end{aligned}
+    \]
+
+\item[AppendTyping] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall x^\idv.\, \st{ \opMem(s, \opSeq(a)), \opAppend(s, x) } \\
+            &\qquad \opMem(s, \opSeq(a)) \wedge \opMem(x, a) \imp \opMem(\opAppend(s, x), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[AppendLen] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opAppend(s, x) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opLen(\opAppend(s, x)) = \opPlus(\opLen(s), \opIntlit_1)
+        \end{aligned}
+    \]
+
+\item[AppendApp$_1$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv \forall i^\idv.\, \begin{aligned}[t]
+                &\st{ \opApp(\opAppend(s, x), i) } \\
+                &\st{ \opAppend(s, x), \opApp(s, i) }
+            \end{aligned} \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opMem(i, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, i) \\
+            &\qquad \wedge \opLe(i, \opLen(s)) \\
+            &\qquad \imp \opApp(\opAppend(s, x), i) = \opApp(s, i)
+        \end{aligned}
+    \]
+
+\item[AppendApp$_2$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opAppend(s, x) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opApp(\opAppend(s, x), \opPlus(\opLen(s), \opIntlit_1)) = x
+        \end{aligned}
+    \]
+
+\item[HeadDef] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opHead(s) } \\
+            &\qquad \opHead(s) = \opApp(s, \opIntlit_1)
+        \end{aligned}
+    \]
+
+\item[TailTyping] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)), \opTail(s) } \\
+            &\qquad \wedge \opMem(s, \opSeq(a)) \\
+            &\qquad \wedge \opLen(s) \neq \opIntlit_0 \\
+            &\qquad \imp \opMem(\opTail(s), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[TailLen] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opTail(s) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opLen(s) \neq \opIntlit_0 \\
+            &\qquad \imp \opLen(\opTail(s)) = \opMinus(\opLen(s), \opIntlit_1)
+        \end{aligned}
+    \]
+
+\item[TailApp] \[
+        \begin{aligned}
+            &\forall s^\idv \forall i^\idv.\, \st{ \opApp(\opTail(s), i) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opLen(s) \neq \opIntlit_0 \\
+            &\qquad \wedge \opMem(i, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, i) \\
+            &\qquad \wedge \opLe(i, \opMinus(\opLen(s), \opIntlit_1)) \\
+            &\qquad \imp \opApp(\opTail(s), i) = \opApp(s, \opPlus(i, \opIntlit_1))
+        \end{aligned}
+    \]
+
+\item[SubseqTyping] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall x^\idv \forall y^\idv.\, \st{ \opMem(s, \opSeq(a)), \opSubseq(s, x, y) } \\
+            &\qquad \wedge \opMem(s, \opSeq(a)) \\
+            &\qquad \wedge \opMem(x, \opInt) \\
+            &\qquad \wedge \opMem(y, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, x) \\
+            &\qquad \wedge \opLe(y, \opLen(s)) \\
+            &\qquad \imp \opMem(\opSubseq(s, x, y), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[SubseqLen$_1$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv \forall y^\idv.\, \st{ \opSubseq(s, x, y) } \\
+            &\qquad \wedge \opMem(x, \opInt) \\
+            &\qquad \wedge \opMem(y, \opInt) \\
+            &\qquad \wedge \opLe(x, \opPlus(y, \opIntlit_1)) \\
+            &\qquad \imp \opLen(\opSubseq(s, x, y)) = \opMinus(\opPlus(y, \opIntlit_1), x)
+        \end{aligned}
+    \]
+
+\item[SubseqLen$_2$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv \forall y^\idv.\, \st{ \opSubseq(s, x, y) } \\
+            &\qquad \wedge \opMem(x, \opInt) \\
+            &\qquad \wedge \opMem(y, \opInt) \\
+            &\qquad \wedge \neg \opLe(x, \opPlus(y, \opIntlit_1)) \\
+            &\qquad \imp \opLen(\opSubseq(s, x, y)) = \opIntlit_0
+        \end{aligned}
+    \]
+
+\item[SubseqApp] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv \forall y^\idv \forall z^\idv.\, \st{ \opApp(\opSubseq(s, x, y), z) } \\
+            &\qquad \wedge \opMem(x, \opInt) \\
+            &\qquad \wedge \opMem(y, \opInt) \\
+            &\qquad \wedge \opMem(z, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, x) \\
+            &\qquad \wedge \opLe(\opIntlit_1, z) \\
+            &\qquad \wedge \opLe(z, \opMinus(\opPlus(y, \opIntlit_1), x)) \\
+            &\qquad \imp \opApp(\opSubseq(s, x, y), z) = \opApp(s, \opMinus(\opPlus(z, x), \opIntlit_1))
+        \end{aligned}
+    \]
+
+\item[SelectseqTyping ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)), \opSelectseq(s, T) } \\
+            &\qquad \opMem(s, \opSeq(a)) \imp \opMem(\opSelectseq(s, T), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[SelectseqLen ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opSelectseq(s, T) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opLe(\opLen(\opSelectseq(s, T)), \opLen(s))
+        \end{aligned}
+    \]
+
+\item[SelectseqElim ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opApp(\opSelectseq(s, T), x) } \\
+            &\qquad \wedge \opMem(x, \opInt) \\
+            &\qquad \wedge \opLe(\opIntlit_1, x) \\
+            &\qquad \wedge \opLe(x, \opLen(\opSelectseq(s, T))) \\
+            &\qquad \imp T(\opApp(\opSelectseq(s, T), x))
+        \end{aligned}
+    \]
+
+\item[TupSeqTyping ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall a^\idv \forall \overline{x}^\idv.\, \st{ \opMem(x_1, a), \dots, \opMem(x_n, a), \opTup_n(\overline{x}) } \\
+            &\qquad \opMem(x_1, a) \wedge \dots \wedge \opMem(x_n, a) \imp \opMem(\opTup_n(\overline{x}), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[TupSeqLen ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
+            &\qquad \opLen(\opTup_n(\overline{x})) = \opIntlit_n
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Integer Arithmetic (Interpreted)}
+    \label{subsec:ints_interpreted}
+
+\begin{axioms}
+\item[IntCastInjective] \[
+        \begin{aligned}
+            &\forall z^\int.\, \st{ \opCast_\int(z) } \\
+            &\qquad z = \opProj_\int(\opCast_\int(z))
+        \end{aligned}
+    \]
+
+\item[IntIntIntro] \[
+        \begin{aligned}
+            &\forall z^\int.\, \st{ \opCast_\int(z) } \\
+            &\qquad \opMem(\opCast_\int(z), \opInt)
+        \end{aligned}
+    \]
+
+\item[IntIntElim] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opMem(x, \opInt) } \\
+            &\qquad \opMem(x, \opInt) \imp x = \opCast_\int(\opProj_\int(x))
+        \end{aligned}
+    \]
+
+\item[IntPlusTyping] \[
+        \begin{aligned}
+            &\forall z_1^\int \forall z_2^\int.\, \st{ \opPlus(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
+            &\qquad \opPlus(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 + z_2)
+        \end{aligned}
+    \]
+
+\item[IntUminusTyping] \[
+        \begin{aligned}
+            &\forall z^\int.\, \st{ \opUminus(\opCast_\int(z)) } \\
+            &\qquad \opUminus(\opCast_\int(z)) = \opCast_\int(- z)
+        \end{aligned}
+    \]
+
+\item[IntMinusTyping] \[
+        \begin{aligned}
+            &\forall z_1^\int \forall z_2^\int.\, \st{ \opMinus(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
+            &\qquad \opMinus(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 - z_2)
+        \end{aligned}
+    \]
+
+\item[IntTimesTyping] \[
+        \begin{aligned}
+            &\forall z_1^\int \forall z_2^\int.\, \st{ \opTimes(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
+            &\qquad z_2 \neq 0 \imp \opTimes(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \times z_2)
+        \end{aligned}
+    \]
+
+\item[IntDivTyping] \[
+        \begin{aligned}
+            &\forall z_1^\int \forall z_2^\int.\, \st{ \opDiv(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
+            &\qquad \opDiv(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \div z_2)
+        \end{aligned}
+    \]
+
+\item[IntLteqTyping] \[
+        \begin{aligned}
+            &\forall z_1^\int \forall z_2^\int.\, \st{ \opLe(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
+            &\qquad \opLe(\opCast_\int(z_1), \opCast_\int(z_2)) \eqv z_1 \le z_2
+        \end{aligned}
+    \]
+
+\item[IntNatIntro] \[
+        \begin{aligned}
+            &\forall z^\int.\, \st{ \opCast_\int(z) } \\
+            &\qquad z \ge 0 \imp \opMem(\opCast_\int(z), \opNat)
+        \end{aligned}
+    \]
+
+\item[IntNatElim] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opMem(x, \opNat) } \\
+            &\qquad \opMem(x, \opNat) \imp x = \opCast_\int(\opProj_\int(x)) \wedge \opProj_\int(x) \ge 0
+        \end{aligned}
+    \]
+
+\item[IntRangeIntro] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall z^\int. \\
+            &\qquad \st{ \opMem(\opCast_\int(z), \opRange(a, b)) } \\
+            &\qquad \opLe(a, \opCast_\int(z)) \wedge \opLe(\opCast_\int(z), b) \imp \opMem(\opCast_\int(z), \opRange(a, b))
+        \end{aligned}
+    \]
+
+\item[IntRangeElim] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv \forall x^\idv. \\
+            &\qquad \st{ \opMem(x, \opRange(a, b)) } \\
+            &\qquad \opMem(x, \opRange(a, b)) \imp x = \opCast_\int(\opProj_\int(x)) \wedge \opLe(a, x) \wedge \opLe(x, b)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Sequences (With Interpreted Arithmetic)}
+    \label{subsec:seqs_interpreted}
+
+\begin{axioms}
+\item[SeqIntro$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)) } \\
+            &\qquad \wedge \opIsafcn(s) \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \forall i^\idv.\, \opMem(i, \opDom(s)) \eqv \opMem(i, \opInt) \wedge 1 \le \opProj_\int(i) \wedge \opProj_\int(i) \le \opProj_\int(\opLen(s)) \\
+            &\qquad \wedge \forall i^\int.\, 1 \le i \wedge i \le \opProj_\int(\opLen(s)) \imp \opMem(\opApp(s, \opCast_\int(i)), a) \\
+            &\qquad \imp \opMem(s, \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[SeqElim$_{\int,1}$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)) } \\
+            &\qquad \opMem(s, \opSeq(a)) \imp \begin{aligned}[t]
+                &\wedge \opIsafcn(s) \\
+                &\wedge \opMem(\opLen(s), \opNat) \\
+                &\wedge \opDom(s) = \opRange(\opCast_\int(1), \opLen(s))
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[SeqElim$_{\int,2}$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall i^\int.\, \st{ \opMem(s, \opSeq(a)), \opApp(s, \opCast_\int(i)) } \\
+            &\qquad \opMem(s, \opSeq(a)) \wedge 1 \le i \wedge i \le \opProj_\int(\opLen(s)) \imp \opMem(\opApp(s, \opCast_\int(i)), a)
+        \end{aligned}
+    \]
+
+\item[LenDef$_\int$] \[
+        \forall s^\idv \forall z^\int.\, z \ge 0 \wedge \opDom(s) = \opRange(\opCast_\int(1), \opCast_\int(z)) \imp \opLen(s) = \opCast_\int(z)
+    \]
+
+\item[CatLen$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv.\, \st{ \opCat(s, t) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \wedge \opMem(\opLen(t), \opNat) \imp \opLen(\opCat(s, t)) = \opCast_\int(\opProj_\int(\opLen(s)) + \opProj_\int(\opLen(t)))
+        \end{aligned}
+    \]
+
+\item[CatApp$_{\int,1}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv \forall i^\int. \\
+            &\qquad \st{ \opApp(\opCat(s, t), \opCast_\int(i)) } \\
+            &\qquad \st{ \opCat(s, t), \opApp(s, \opCast_\int(i)) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opMem(\opLen(t), \opNat) \\
+            &\qquad \wedge 1 \le i \\
+            &\qquad \wedge i \le \opProj_\int(\opLen(s)) \\
+            &\qquad \imp \opApp(\opCat(s, t), \opCast_\int(i)) = \opApp(s, \opCast_\int(i))
+        \end{aligned}
+    \]
+
+\item[CatApp$_{\int,2}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall t^\idv \forall i^\int. \\
+            &\qquad \st{ \opApp(\opCat(s, t), \opCast_\int(i)) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opMem(\opLen(t), \opNat) \\
+            &\qquad \wedge i \le \opProj_\int(\opLen(s)) + \opProj_\int(\opLen(t)) \\
+            &\qquad \wedge \opProj_\int(\opLen(s)) < i \\
+            &\qquad \imp \opApp(\opCat(s, t), \opCast_\int(i)) = \opApp(t, \opCast_\int(i - \opProj_\int(\opLen(s))))
+        \end{aligned}
+    \]
+
+\item[AppendLen$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opAppend(s, x) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opLen(\opAppend(s, x)) = \opCast_\int(\opProj_\int(\opLen(s)) + 1)
+        \end{aligned}
+    \]
+
+\item[AppendApp$_{\int,1}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv \forall i^\int. \\
+            &\qquad \st{ \opApp(\opAppend(s, x), \opCast_\int(i)) } \\
+            &\qquad \st{ \opAppend(s, x), \opApp(s, \opCast_\int(i)) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge 1 \le i \\
+            &\qquad \wedge i \le \opProj_\int(\opLen(s)) \\
+            &\qquad \imp \opApp(\opAppend(s, x), \opCast_\int(i)) = \opApp(s, \opCast_\int(i))
+        \end{aligned}
+    \]
+
+\item[AppendApp$_{\int,2}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opAppend(s, x) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opApp(\opAppend(s, x), \opCast_\int(\opProj_\int(\opLen(s)) + 1)) = x
+        \end{aligned}
+    \]
+
+\item[HeadDef$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opHead(s) } \\
+            &\qquad \opHead(s) = \opApp(s, \opCast_\int(1))
+        \end{aligned}
+    \]
+
+\item[TailTyping$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv.\, \st{ \opMem(s, \opSeq(a)), \opTail(s) } \\
+            &\qquad \wedge \opMem(s, \opSeq(a)) \\
+            &\qquad \wedge \opProj_\int(\opLen(s)) \neq 0 \\
+            &\qquad \imp \opMem(\opTail(s), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[TailLen$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opTail(s) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opProj_\int(\opLen(s)) \neq 0 \\
+            &\qquad \imp \opLen(\opTail(s)) = \opCast_\int(\opProj_\int(\opLen(s)) - 1)
+        \end{aligned}
+    \]
+
+\item[TailApp$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall i^\int. \\
+            &\qquad \st{ \opApp(\opTail(s), \opCast_\int(i)) } \\
+            &\qquad \wedge \opMem(\opLen(s), \opNat) \\
+            &\qquad \wedge \opProj_\int(\opLen(s)) \neq 0 \\
+            &\qquad \wedge 1 \le i \\
+            &\qquad \wedge i \le \opProj_\int(\opLen(s)) - 1 \\
+            &\qquad \imp \opApp(\opTail(s), \opCast_\int(i)) = \opApp(s, i + 1)
+        \end{aligned}
+    \]
+
+\item[SubseqTyping$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall s^\idv \forall x^\int \forall y^\int.\, \st{ \opMem(s, \opSeq(a)), \opSubseq(s, \opCast_\int(x), \opCast_\int(y)) } \\
+            &\qquad \wedge \opMem(s, \opSeq(a)) \\
+            &\qquad \wedge 1 \le x \\
+            &\qquad \wedge y \le \opProj_\int(\opLen(s)) \\
+            &\qquad \imp \opMem(\opSubseq(s, \opCast_\int(x), \opCast_\int(y)), \opSeq(a))
+        \end{aligned}
+    \]
+
+\item[SubseqLen$_{\int,1}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\int \forall y^\int.\, \st{ \opSubseq(s, \opCast_\int(x), \opCast_\int(y)) } \\
+            &\qquad \wedge x \le y + 1 \\
+            &\qquad \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int((y + 1) - x)
+        \end{aligned}
+    \]
+
+\item[SubseqLen$_{\int,2}$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\int \forall y^\int.\, \st{ \opSubseq(s, \opCast_\int(x), \opCast_\int(y)) } \\
+            &\qquad \wedge x > y + 1 \\
+            &\qquad \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int(0)
+        \end{aligned}
+    \]
+
+\item[SubseqApp$_\int$] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\int \forall y^\int \forall z^\int.\, \st{ \opApp(\opSubseq(s, \opCast_\int(x), \opCast_\int(y)), \opCast_\int(z)) } \\
+            &\qquad \wedge 1 \le x \\
+            &\qquad \wedge 1 \le z \\
+            &\qquad \wedge z \le (y + 1) - x \\
+            &\qquad \imp \opApp(\opSubseq(s, \opCast_\int(x), \opCast_\int(y)), \opCast_\int(z)) = \opApp(s, \opCast_\int((z + x) - 1))
+        \end{aligned}
+    \]
+
+\item[SelectseqLen$_\int$ ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall s^\idv.\, \st{ \opSelectseq(s, T) } \\
+            &\qquad \opMem(\opLen(s), \opNat) \imp \opProj_\int(\opLen(\opSelectseq(s, T))) \le \opProj_\int(\opLen(s))
+        \end{aligned}
+    \]
+
+\item[SelectseqElim$_\int$ ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\int.\, \st{ \opApp(\opSelectseq(s, T), \opCast_\int(x)) } \\
+            &\qquad \wedge 1 \le x \\
+            &\qquad \wedge x \le \opProj_\int(\opLen(\opSelectseq(s, T))) \\
+            &\qquad \imp T(\opApp(\opSelectseq(s, T), \opCast_\int(x)))
+        \end{aligned}
+    \]
+
+\item[TupSeqLen$_\int$ ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
+            &\qquad \opLen(\opTup_n(\overline{x})) = \opCast_\int(n)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+\end{document}
+% end of file

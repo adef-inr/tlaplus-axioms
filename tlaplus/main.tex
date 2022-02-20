@@ -1,0 +1,464 @@
+% file: main.tex
+\documentclass[11pt, a4paper, oneside]{article}
+
+% Common libraries
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[pdftex,pdfpagelabels,bookmarks,hyperindex]{hyperref}
+
+% Formatting libraries
+\usepackage{a4wide}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+% Mathematical libraries
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{colonequals}
+\usepackage{stmaryrd}
+\usepackage{bussproofs}
+
+% Graphical libraries
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+
+\input{style}
+
+% Basic info
+\title{A First-Order Axiomatization of \TLA}
+\author{Antoine Defourné}
+\date{}
+
+\begin{document}
+
+%\maketitle
+\pagestyle{empty}
+
+\section{Purpose and Conventions}
+
+In this document you will find an axiomatization for \TLA's theory.  The reference book for \TLA offers a different formal definition of the language, but I believe the differences are only in the presentation, and that the two views are equivalent.  My motivation for developing a different formal presentation was to secure the foundations of the SMT encoding for the tool TLAPS.  The axiomatic presentation I provide here follows the guidelines of \TLA's reference book, but it is more explicit and shows how \TLA can be encoded only through axioms.
+
+Only the constant fragment of \TLA is considered here.  The language is formalized by the following grammar:
+\begin{align*}
+    e &\coloncolonequals x \mid k(f, \dots, f) \mid e = e \mid \tlaFALSE \mid e \imp e \mid \forall x : e\tag{Expressions} \\
+    f &\coloncolonequals e \mid k \mid \lambda x, \dots, x : e \tag{Arguments}
+\end{align*}
+where~$x$ denotes a variable symbol, and~$k$ denotes an operator symbol.  Each operator symbol is assigned a shape, which is just a second-order type over the sort of individuals~$\idv$.  Shapes are represented with the usual notation for functional types, for instance:
+\begin{align*}
+    \opSetst : \idv \times (\idv \arr \idv) \arr \idv
+\end{align*}
+Applications must be well formed in the natural way with respect to shapes.  The language allows for second-order applications, that is, applications where one or several arguments are (first-order) operators.  An operator argument can be a symbol or a lambda-expressions.  This is the only place where a lambda-expression can occur.  For instance, the following application is well formed:
+\begin{align*}
+    \opSetst(e_1, \lambda x : e_2)
+\end{align*}
+
+The semantics for this language can be defined like that of unsorted first-order logic.  Rather than providing the full definition, we only highlight the key differences (there are only two).
+\begin{itemize}
+    \item There is no syntactic distinction between terms and formulas in \TLA.  Instead, all expressions are evaluated in the same domain~$D$, which must contain the Boolean values $\top$~and~$\bot$.  The definition of an evaluation function~$\br{\cdot}$ can be imported from that of traditional first-order logic, if one extends it to define the interpretation of Boolean connectives for all values of~$D$.  For instance, $\br{e_1 \imp e_2}$ must be defined for cases where $\br{e_1}$~or~$\br{e_2}$ is neither $\top$~nor~$\bot$.  The general rule for extending the definition is to assimilate any $v \neq \top$ to~$\bot$ for interpreting Boolean connectives such as implication.
+    \item \TLA features second-order operators and second-order applications.  The appropriate collection of functions over~$D$ must be assigned to every shape, including second-order ones.  First-order operators, including lambda-expressions, must be interpreted as first-order functions over~$D$.
+\end{itemize}
+
+The grammar above is minimal.  All the usual Boolean connectives can be defined as notations:
+\begin{align*}
+    \tlaTRUE        &\triangleq \tlaFALSE \imp \tlaFALSE \\
+    \neg e          &\triangleq e \imp \tlaFALSE \\
+    e_1 \neq e_2    &\triangleq \neg (e_1 = e_2) \\
+    e_1 \vee e_2    &\triangleq \neg e_1 \imp e_2 \\
+    e_1 \wedge e_2  &\triangleq \neg (\neg e_1 \vee \neg e_2) \\
+    e_1 \eqv e_2    &\triangleq (e_1 \imp e_2) \wedge (e_1 \imp e_2) \\
+    \exists x : e   &\triangleq \neg \forall x : \neg e
+\end{align*}
+
+In the following sections, we will formalize the constant fragment of \TLA as a standard theory on top of the base logic defined above.  This theory is composed of a collection of standard operators (Section~\ref{sec:operators}) and a collection of axioms (Section~\ref{sec:axioms}).  All applications can be represented with the notation $k(\ldots)$, but \TLA's actual syntax features more readable notations.  For instance, the expression $\opSetst(e_1, \lambda x : e_2)$ is rather written $\st{ x \in e_1 : e_2 }$ in \TLA.  When such a notation exists, we will indicate it for the relevant operator, and use it in the axioms.
+
+We will also follow \TLA's notation for multiline conjunctions.  Lines with the same indentation starting with a~$\wedge$ are components of the same conjunction:
+\begin{gather*}
+    \begin{aligned}
+        &\wedge e_1 \\
+        &\wedge \dots \\
+        &\wedge e_n \\
+        &\imp e
+    \end{aligned}
+    \qquad\text{is equivalent to}\qquad
+    \begin{aligned}
+        &(e_1 \wedge \dots \wedge e_n) \\
+        &\quad \imp e
+    \end{aligned}
+\end{gather*}
+
+Many operators and axioms can only be formalized as schemas.  For example, the \TLA expression $\tup{ e_1, \dots, e_n }$ represents a $n$-tuple.  The operator for a $n$-tuple has arity~$n$.  For representing tuples of any arity, an infinite amount of operators is needed, one per arity.  The axioms that specify tuples are typically axiom schemas, parameterized by the arity~$n$.  For instance:
+\begin{axioms}
+\item[TupDom ($n \ge 0$)] \[
+        \forall x_1, \dots, x_n : \tlaDOMAIN(\tup{x_1, \dots, x_n}) = \st{ 1, \dots, n }
+    \]
+\end{axioms}
+We will present all axiom schemas as above, with parameters enclosed in parentheses.  The letter~$n$ will always denote a natural number, $p$~a positive number, and~$s$ a string of characters.  Some schemas are parameterized by \TLA operators, in that case the type of the operator will be specified next to its symbol.
+
+
+\section{Operators}
+\label{sec:operators}
+
+    \subsection{Epsilon-Calculus, Set Theory, Functions and Arithmetic}
+
+\begin{alignat*}{4}
+    \opChoose       &: (\idv \arr \idv) \arr \idv                   &\qquad \tlaCHOOSE\; x : e      &\triangleq \opChoose(\lambda x : e) \\[7pt]
+    %
+    \opMem          &: \idv \times \idv \arr \idv                   &\qquad e_1 \in e_2             &\triangleq \opMem(e_1, e_2) \\
+                                                                &   &\qquad e_1 \notin e_2          &\triangleq \neg (e_1 \in e_2) \\
+    \opSubseteq     &: \idv \times \idv \arr \idv                   &\qquad e_1 \subseteq e_2       &\triangleq \opSubseteq(e_1, e_2) \\
+    \opEnum_n       &: \idv^n \arr \idv                             &\qquad \st{ e_1, \dots, e_n }  &\triangleq \opEnum_n(e_1, \dots, e_n) \\
+    \opPower        &: \idv \arr \idv                               &\qquad \tlaSUBSET\; e          &\triangleq \opPower(e) \\
+    \opUnion        &: \idv \arr \idv                               &\qquad \tlaUNION\; e           &\triangleq \opUnion(e) \\
+    \opSetst        &: \idv \times (\idv \arr \idv) \arr \idv       &\qquad \st{ x \in e_1 : e_2 }  &\triangleq \opSetst(e_1, \lambda x : e_2) \\
+    \opSetof_p      &: \idv^p \times (\idv^p \arr \idv) \arr \idv   &\qquad \st{ e : x_1 \in e_1, \dots, x_p \in e_p }  &\triangleq \opSetof_p(e_1, \dots, e_p, \lambda x_1, \dots, x_p : e) \\
+    \opCup          &: \idv \times \idv                             &\qquad e_1 \cup e_2            &\triangleq \opCup(e_1, e_2) \\
+    \opCap          &: \idv \times \idv                             &\qquad e_1 \cap e_2            &\triangleq \opCap(e_1, e_2) \\
+    \opSetminus     &: \idv \times \idv                             &\qquad e_1 \,\backslash\, e_2    &\triangleq \opSetminus(e_1, e_2) \\[7pt]
+    %
+    \opIsafcn       &: \idv \arr \idv \\
+    \opArrow        &: \idv \times \idv \arr \idv                   &\qquad \bx{ e_1 \arr e_2 }     &\triangleq \opArrow(e_1, e_2) \\
+    \opFcn          &: \idv \times (\idv \arr \idv) \arr \idv       &\qquad \bx{ x \in e_1 \mapsto e_2 }  &\triangleq \opFcn(e_1, \lambda x : e_2) \\
+    \opExcept       &: \idv \times \idv \times \idv \arr \idv       &\qquad \bx{ e_1 \;\tlaEXCEPT\; !\bx{e_2} = e_3 } &\triangleq \opExcept(e_1, e_2, e_3) \\
+    \opApp          &: \idv \times \idv \arr \idv                   &\qquad e_1\!\bx{e_1}           &\triangleq \opApp(e_1, e_2) \\
+    \opDom          &: \idv \arr \idv                               &\qquad \tlaDOMAIN\; e          &\triangleq \opDom(e) \\[7pt]
+    %
+    \itInt          &: \idv \\
+    \itNat          &: \idv \\
+    0, 1, 2, \dots  &: \idv \\
+    \opPlus         &: \idv \times \idv \arr \idv                   &\qquad e_1 + e_2               &\triangleq \opPlus(e_1, e_2) \\
+    \opUminus       &: \idv \arr \idv                               &\qquad - e                     &\triangleq \opUminus(e) \\
+    \opMinus        &: \idv \times \idv \arr \idv                   &\qquad e_1 - e_2               &\triangleq \opMinus(e_1, e_2) \\
+    \opTimes        &: \idv \times \idv \arr \idv                   &\qquad e_1 \times e_2          &\triangleq \opTimes(e_1, e_2) \\
+    \opDiv          &: \idv \times \idv \arr \idv                   &\qquad e_1 \div e_2            &\triangleq \opDiv(e_1, e_2) \\
+    \opLe           &: \idv \times \idv \arr \idv                   &\qquad e_1 \le e_2             &\triangleq \opLe(e_1, e_2) \\
+                                                                &   &\qquad e_1 < e_1               &\triangleq e_1 \le e_2 \wedge e_1 \neq e_2 \\
+                                                                &   &\qquad e_1 \ge e_1             &\triangleq e_2 \le e_1 \\
+                                                                &   &\qquad e_1 > e_1               &\triangleq e_2 \le e_1 \wedge e_1 \neq e_2 \\
+    \opRange        &: \idv \times \idv \arr \idv                   &\qquad e_1 \ltwodots e_2       &\triangleq \opRange(e_1, e_2) 
+\end{alignat*}
+
+The ambiguous notation $\st{ x \in e_1 : y \in e_2 }$ is resolved as $\opSetst(e_1, \lambda x : y \in e_2)$.
+
+
+    \subsection{Booleans, Strings, Tuples, Records and Sequences}
+
+\begin{alignat*}{4}
+    \opBoolean      &: \idv                                         &\qquad \tlaBOOLEAN             &\triangleq \opBoolean \\[7pt]
+    %
+    \opString       &: \idv                                         &\qquad \tlaSTRING              &\triangleq \opString \\
+    \opStrlit_s     &: \idv                                         &\qquad \mkstr{foo}             &\triangleq \opStrlit_{\mathit{foo}}\\[7pt]
+    %
+    \opProd_p       &: \idv^p \times \idv \arr \idv                 &\qquad e_1 \times \cdots \times e_p \times e_{p+1}  &\triangleq \opProd_n(e_1, \dots, e_p, e_{p+1}) \\
+    \opTup_n        &: \idv^n \arr \idv                             &\qquad \tup{ e_1, \dots, e_n } &\triangleq \opTup_n(e_1, \dots, e_n) \\[7pt]
+    %
+    \opRecord_{s_1,\dots,s_p} &: \idv^p \arr \idv                   &\qquad \bx{ s_1 \mapsto e_1, \dots, s_p \mapsto e_p }  &\triangleq \opRecord_{s_1,\dots,s_p}(e_1, \dots, e_p) \\
+    \opRect_{s_1,\dots,s_p}   &: \idv^p \arr \idv                   &\qquad \bx{ s_1 : e_1, \dots, s_p : e_p }  &\triangleq \opRect_{s_1,\dots,s_p}(e_1, \dots, e_p) \\[7pt]
+    %
+    \itSeq          &: \idv \arr \idv \\
+    \itLen          &: \idv \arr \idv \\
+    \itCat          &: \idv \times \idv \arr \idv                   &\qquad s \circ t               &\triangleq \itCat(s, t) \\
+    \itAppend       &: \idv \times \idv \arr \idv \\
+    \itHead         &: \idv \arr \idv \\
+    \itTail         &: \idv \arr \idv \\
+    \itSubseq       &: \idv \times \idv \times \idv \arr \idv \\
+    \itSelectseq    &: \idv \times (\idv \arr \idv) \arr \idv
+\end{alignat*}
+
+
+\newpage
+\section{Axioms}
+\label{sec:axioms}
+
+    \subsection{Epsilon-Calculus and Set Theory}
+    \label{subsec:epsilon_and_sets}
+
+\begin{axioms}
+\item[ChooseDef ($P : \idv \arr \idv$)] \[
+        \forall x : P(x) \imp P(\tlaCHOOSE\; x : P(x))
+    \]
+
+\item[ChooseExtensionality ($P : \idv \arr \idv$, $Q : \idv \arr \idv$)] \[
+        (\forall x : P(x) \eqv Q(x)) \imp (\tlaCHOOSE\; x : P(x)) = (\tlaCHOOSE\; x : Q(x))
+    \]
+
+\item[SetExtensionality] \[
+        \forall a, b : (\forall z : z \in a \eqv z \in b) \imp a = b
+    \]
+
+\item[SubseteqDef] \[
+        \forall a, b : a \subseteq b \eqv (\forall z : z \in a \imp z \in b)
+    \]
+
+\item[EnumDef ($p > 0$)] \[
+        \forall a_1, \dots, a_p, x : x \in \st{ a_1, \dots, a_p } \eqv x = a_1 \vee \dots \vee x = a_p
+    \]
+
+\item[EmptyDef] \[
+        \forall x : x \notin \st{}
+    \]
+
+\item[SubsetDef] \[
+        \forall a, x : x \in \tlaSUBSET\; a \eqv x \subseteq a
+    \]
+
+\item[UnionDef] \[
+        \forall a, x : x \in \tlaUNION\; a \eqv \exists y : x \in y \wedge y \in a
+    \]
+
+\item[SetstDef ($P : \idv \arr \idv$)] \[
+        \forall a, x : x \in \st{ x \in a : P(x) } \eqv x \in a \wedge P(x)
+    \]
+
+\item[SetofElim ($p > 0$, $F : \idv^p \arr \idv$)] \[
+        \begin{aligned}
+            &\forall a_1, \dots, a_p, x_1, \dots, x_p : \\
+            &\qquad x \in \st{ F(x_1, \dots, x_p) : x_1 \in a_1, \dots, x_p \in a_p } \\
+            &\qquad \eqv \exists y_1, \dots, y_p : y_1 \in a_1 \wedge \dots \wedge y_p \in a_p \wedge x = F(y_1, \dots, y_p)
+        \end{aligned}
+    \]
+
+\item[CupDef] \[
+        \forall a, b, x : x \in a \cup b \eqv x \in a \vee x \in b
+    \]
+
+\item[CapDef] \[
+        \forall a, b, x : x \in a \cap b \eqv x \in a \wedge x \in b
+    \]
+
+\item[SetminusDef] \[
+        \forall a, b, x : x \in a \,\backslash\, b \eqv x \in a \wedge x \notin b
+    \]
+
+\end{axioms}
+
+
+    \subsection{Functions}
+    \label{subsec:functions}
+
+\begin{axioms}
+\item[FcnExtensionality] \[
+        \begin{aligned}
+            &\forall f, g : \\
+            &\qquad \wedge \opIsafcn(f) \\
+            &\qquad \wedge \opIsafcn(g) \\
+            &\qquad \wedge \tlaDOMAIN\; f = \tlaDOMAIN\; g \\
+            &\qquad \wedge \forall x : x \in \tlaDOMAIN\; f \imp f\!\bx{x} = g\!\bx{x} \\
+            &\qquad \imp f = g
+        \end{aligned}
+    \]
+
+\item[FcnIsafcn ($F : \idv \arr \idv$)] \[
+        \forall a : \opIsafcn(\bx{ x \in a \mapsto F(x) })
+    \]
+
+\item[FcnDom ($F : \idv \arr \idv$)] \[
+        \forall a : \tlaDOMAIN\; \bx{ x \in a \mapsto F(x) } = a
+    \]
+
+\item[FcnApp ($F : \idv \arr \idv$)] \[
+        \forall a, x : x \in a \imp \bx{ y \in a \mapsto F(y) }\!\bx{x} = F(x)
+    \]
+
+\item[ArrowDef] \[
+        \begin{aligned}
+            &\forall a, b, f : f \in \bx{ a \arr b } \eqv \\
+            &\qquad \wedge \opIsafcn(f) \\
+            &\qquad \wedge \tlaDOMAIN\; f = a \\
+            &\qquad \wedge \forall x : x \in a \imp f\!\bx{x} \in b
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+The next axiom features an if-then-else expression.  We can define this construct using the choice operator: \[
+    \tlaIF\; b \;\tlaTHEN\; e_1 \;\tlaELSE\; e_2 \triangleq \tlaCHOOSE\; x : (b \imp x = e_1) \wedge (\neg b \imp x = e_2)
+\]
+
+\begin{axioms}
+\item[ExceptDef] \[
+        \begin{aligned}
+            &\forall f, x, y : \bx{ f \;\tlaEXCEPT\; !\!\bx{x} = y } = \bx{ z \in \tlaDOMAIN\; f \mapsto \tlaIF\; z = x \;\tlaTHEN\; y \;\tlaELSE\; f\!\bx{z} }
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Integer Arithmetic}
+    \label{subsec:ints}
+
+We do not present a theory of integer arithmetic here.  \TLA's arithmetic is not different from that of SMT, to take one example.  Assuming an axiomatization of integer arithmetic, one for \TLA can be obtained by relativizing all axioms to the set~$\itInt$.  For instance, from the axiom: \[
+    \forall x : x + 0 = x
+\] one obtained the \TLA axiom \[
+    \forall x : x \in \itInt \imp x + 0 = x
+\]
+
+The only axioms we document below are those that define the operator~$\opRange$, and additional facts about~$\itInt$ and~$\itNat$.
+
+\begin{axioms}
+\item[NumTyping ($n \ge 0$)] \[
+        n \in \itNat
+    \]
+
+\item[PlusTyping] \[
+        \forall x, y : x \in \itInt \wedge y \in \itInt \imp (x + y) \in \itInt
+    \]
+
+\item[UminusTyping] \[
+        \forall x : x \in \itInt \imp (- x) \in \itInt
+    \]
+
+\item[MinusTyping] \[
+        \forall x, y : x \in \itInt \wedge y \in \itInt \imp (x - y) \in \itInt
+    \]
+
+\item[TimesTyping] \[
+        \forall x, y : x \in \itInt \wedge y \in \itInt \imp (x \times y) \in \itInt
+    \]
+
+\item[DivTyping] \[
+        \forall x, y : x \in \itInt \wedge y \in \itInt \wedge y \neq 0 \imp (x \div y) \in \itInt
+    \]
+
+\item[NatDef] \[
+        \forall x : x \in \itNat \eqv x \in \itInt \wedge x \ge 0
+    \]
+
+\item[RangeDef] \[
+        \forall a, b : a \ltwodots b = \st{ x \in \itInt : a \le x \wedge x \le b }
+    \]
+
+\end{axioms}
+
+
+    \subsection{Booleans and Strings}
+    \label{subsec:bools_and_strings}
+
+\begin{axioms}
+\item[BooleanDef] \[
+        \forall x : x \in \tlaBOOLEAN \imp x = \tlaTRUE \vee x = \tlaFALSE
+    \]
+
+\item[StringIntro ({\rm$\mathsf{foo}$~is a string})] \[
+        \mkstr{foo} \in \tlaSTRING
+    \]
+
+\item[StringsDistinct ({\rm$\mathsf{foo}$~and~$\mathsf{bar}$ are two distinct strings})] \[
+        \mkstr{foo} \neq \mkstr{bar}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Tuples and Records}
+    \label{subsec:tups_and_recs}
+
+We define case-expressions as a generalization of if-then-else: \[
+    \begin{aligned}
+        &\tlaCASE\; b_1 : e_1 \\
+        &\tlaCASE\; b_2 : e_2 \\
+        &\cdots \\
+        &\tlaCASE\; b_n : e_n \\
+        &\tlaOTHERWISE : e
+    \end{aligned}
+    \quad\triangleq\quad
+    \begin{aligned}
+        &\tlaIF\; b_1 \;\tlaTHEN\; e_1 \\
+        &\tlaELSE\;\tlaIF\; b_2 \;\tlaTHEN\; e_2 \\
+        &\cdots \\
+        &\tlaELSE\;\tlaIF\; b_n \;\tlaTHEN\; e_n \\
+        &\tlaELSE\; e
+    \end{aligned}
+\] The ``otherwise'' clause may be missing, in that case the expression~$e$ is $\tlaCHOOSE\; x : \tlaTRUE$ (an arbitrary value).
+
+\begin{axioms}
+\item[TupDef ($n \ge 0$)] \[
+        \forall x_1, \dots, x_n : \tup{ x_1, \dots, x_n } = [ i \in 1 \ltwodots n \mapsto \begin{aligned}[t]
+            &\tlaCASE\; i = 1 : x_1 \\
+            & \cdots \\
+            &\tlaCASE\; i = n : x_n ]
+        \end{aligned}
+    \]
+
+\item[ProductDef ($p > 0$)] \[
+        \begin{aligned}
+            &\forall a_1, \dots, a_p, a_{p + 1} : \\
+            &\qquad a_1 \times \cdots \times a_p \times a_{p + 1} = \st{ \tup{ x_1, \dots, x_p, x_{p + 1} } : x_1 \in a_1, \dots, x_p \in a_p, x_{p + 1} \in a_{p + 1} }
+        \end{aligned}
+    \]
+
+\item[RecordDef (\rm$\mathsf{foo_1},\dots,\mathsf{foo_p}$ are strings)] \[
+        \begin{aligned}
+            &\forall x_1, \dots, x_n : \\
+            &\qquad \bx{ \mathsf{foo_1} \mapsto x_1, \dots, \mathsf{foo_p} \mapsto x_p } = [ s \in \st{ \mkstr{foo_1}, \dots, \mkstr{foo_p} } \mapsto \begin{aligned}[t]
+                &\tlaCASE\; s = \mkstr{foo_1} : x_1 \\
+                & \cdots \\
+                &\tlaCASE\; s = \mkstr{foo_p} : x_p ]
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[RectDef (\rm$\mathsf{foo_1},\dots,\mathsf{foo_p}$ are strings)] \[
+        \begin{aligned}
+            &\forall a_1, \dots, a_p : \\
+            &\qquad \bx{ \mathsf{foo_1} : a_1, \dots, \mathsf{foo_p} : a_p } = \st{ \bx{ \mathsf{foo_1} \mapsto x_1, \dots, \mathsf{foo_p} \mapsto x_p } : x_1 \in a_1, \dots, x_p \in a_p }
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Sequences}
+    \label{subsec:seqs}
+
+\begin{axioms}
+\item[SeqDef] \[
+        \forall a : \itSeq(a) = \tlaUNION\; \st{ \bx{ 1 \ltwodots n \arr a } : n \in \itNat }
+    \]
+
+\item[LenDef] \[
+        \forall s : \itLen(s) = \tlaCHOOSE\; n : n \in \itNat \wedge \tlaDOMAIN\; s = 1 \ltwodots n
+    \]
+
+\item[CatDef] \[
+        \forall s, t : s \circ t = [ i \in 1 \ltwodots (\itLen(s) + \itLen(t)) \mapsto \tlaIF\; i \le \itLen(s) \;\begin{aligned}[t]
+            &\tlaTHEN\; s\!\bx{i} \\
+            &\tlaELSE\; t\!\bx{i - \itLen(s)} ]
+        \end{aligned}
+    \]
+
+\item[AppendDef] \[
+        \forall s, x : \itAppend(s, x) = s \circ \tup{ x }
+    \]
+
+\item[HeadDef] \[
+        \forall s : \itHead(s) = s\!\bx{1}
+    \]
+
+\item[TailDef] \[
+        \forall s : s \neq \tup{} \imp \itTail(s) = \bx{ i \in 1 \ltwodots (\itLen(s) - 1) \mapsto s\!\bx{i + 1} }
+    \]
+
+\item[SubseqDef] \[
+        \forall s, m, n : \itSubseq(s, m, n) = \bx{ i \in 1 \ltwodots (1 + m - n) \mapsto s\!\bx{i + m - 1} }
+    \]
+
+\item[SelectSeq ($T : \idv \arr \idv$)] \[
+        \begin{aligned}
+            &\forall s, x : \\
+            &\qquad \itSelectseq(\tup{}, T) = \tup{} \\
+            &\qquad T(x) \imp \itSelectseq(\itAppend(s, x), T) = \itAppend(\itSelectseq(s, T), x) \\
+            &\qquad \neg T(x) \imp \itSelectseq(\itAppend(s, x), T) = \itSelectseq(s, T)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+\end{document}
+% end of file

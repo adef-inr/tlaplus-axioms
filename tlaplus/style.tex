@@ -1,0 +1,149 @@
+% file: contents/style.tex
+
+% Mathematical notations {{{1
+
+% Constants
+\newcommand*{\idv}{\iota}
+\newcommand*{\fcn}{\mathsf{fcn}}
+\renewcommand*{\int}{\mathsf{int}}
+
+% TLA+ Notations
+\newcommand{\deftlaop}[2]{%
+    \expandafter\def\csname tla#1\endcsname{\text{\sc\lowercase{#2}}%
+    } %
+    }
+\newcommand{\defmathit}[2]{%
+    \expandafter\def\csname it#1\endcsname{\mathit{#2}} %
+    }
+
+\deftlaop{ASSUME}{Assume}
+\deftlaop{PROVE}{Prove}
+\deftlaop{NEW}{New}
+
+\deftlaop{LET}{Let}
+\deftlaop{IN}{In}
+\deftlaop{IF}{If}
+\deftlaop{THEN}{Then}
+\deftlaop{ELSE}{Else}
+\deftlaop{CASE}{Case}
+\deftlaop{OTHERWISE}{Otherwise}
+\deftlaop{CHOOSE}{Choose}
+\deftlaop{FALSE}{False}
+\deftlaop{TRUE}{True}
+\deftlaop{SUBSET}{Subset}
+\deftlaop{UNION}{Union}
+\deftlaop{DOMAIN}{Domain}
+\deftlaop{EXCEPT}{Except}
+\deftlaop{BOOLEAN}{Boolean}
+\deftlaop{STRING}{String}
+
+\defmathit{Int}{Int}
+\defmathit{Nat}{Nat}
+
+\defmathit{Seq}{Seq}
+\defmathit{Len}{Len}
+\defmathit{Cat}{Cat}
+\defmathit{Append}{Append}
+\defmathit{Head}{Head}
+\defmathit{Tail}{Tail}
+\defmathit{Subseq}{Subseq}
+\defmathit{Selectseq}{Selectseq}
+
+
+% Operators
+\newcommand{\defop}[2]{\expandafter\def\csname op#1\endcsname{\mathsf{#2}} }
+
+\defop{Cast}{cast}
+\defop{Proj}{proj}
+
+\defop{Choose}{choose}
+
+\defop{Mem}{in}
+\defop{Subseteq}{subseteq}
+\defop{Enum}{enum}
+\defop{Empty}{empty}
+\defop{Power}{subset}
+\defop{Union}{union}
+\defop{Setst}{setst}
+\defop{Setof}{setof}
+\defop{Cup}{cup}
+\defop{Cap}{cap}
+\defop{Setminus}{setminus}
+
+\defop{Strlit}{str}
+\defop{String}{String}
+\defop{Boolean}{Boolean}
+
+\defop{Isafcn}{isafcn}
+\defop{Asfcn}{asfcn}
+\defop{Arrow}{arrow}
+\defop{App}{fcnapp}
+\defop{Dom}{domain}
+\defop{Fcn}{fcn}
+\defop{Except}{except}
+
+\defop{Int}{Int}
+\defop{Nat}{Nat}
+\defop{Intlit}{num}
+\defop{Plus}{plus}
+\defop{Uminus}{uminus}
+\defop{Minus}{minus}
+\defop{Times}{times}
+\defop{Div}{div}
+\defop{Exp}{exp}
+\defop{Lt}{lt}
+\defop{Le}{lteq}
+\defop{Gt}{gt}
+\defop{Ge}{gteq}
+\defop{Range}{range}
+
+\defop{Tup}{tup}
+\defop{Prod}{product}
+
+\defop{Record}{record}
+\defop{Rect}{rect}
+
+% Infix
+\newcommand*{\imp}{\Rightarrow}
+\newcommand*{\eqv}{\Leftrightarrow}
+\newcommand*{\arr}{\rightarrow}
+\newcommand*{\ltwodots}{\,\ldotp\ldotp\,}
+
+% Enclosing
+\newcommand*{\parens}[1]{\left( #1 \right)}
+\newcommand*{\st}[1]{\left\{ #1 \right\}}
+\newcommand*{\br}[1]{\left\llbracket #1 \right\rrbracket}
+\newcommand*{\bx}[1]{\left[ #1 \right]}
+\newcommand*{\tup}[1]{\left\langle #1 \right\rangle}
+\newcommand*{\mkstr}[1]{\mathtt{"#1"}}
+
+% Theorem notations {{{1
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+
+\theoremstyle{remark}
+\newtheorem*{rem}{Remark}
+\newtheorem*{eg}{Example}
+
+% Misc {{{1
+
+% Acronyms
+\newcommand*{\TLA}{{TLA\textsuperscript{+}}\xspace}
+
+% Special
+\newcommand*{\TODO}{\textsc{\textcolor{red}{Todo}}\xspace}
+
+% Format for listing axioms
+\newlist{axioms}{description}{1}
+\setlist[axioms]{align=left,font=\sc,labelsep=1.5em,labelwidth=\textwidth}
+
+% }}}
+
+% end of file

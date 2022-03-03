@@ -118,15 +118,15 @@ We will also follow \TLA's notation for multiline conjunctions.  Lines with the 
 
 \begin{minipage}[t]{.5\textwidth}
     \begin{align*}
-        \opChoose       &: (\idv \arr o) \arr \idv \\
-        \\
+        \opChoose       &: (\idv \arr o) \arr \idv \\[7pt]
+        %
         \opMem          &: \idv \times \idv \arr o \\
         \opSubseteq     &: \idv \times \idv \arr o \\
         \opEnum_n       &: \idv^n \arr \idv \\
         \opPower        &: \idv \arr \idv \\
         \opUnion        &: \idv \arr \idv \\
         \opSetst        &: \idv \times (\idv \arr o) \arr \idv \\
-        \opSetof_p      &: \idv^p \times (\idv^p \arr \idv) \arr \idv \\
+        \opSetof_{n+1}  &: \idv^{n+1} \times (\idv^{n+1} \arr \idv) \arr \idv \\
         \opCup          &: \idv \times \idv \\
         \opCap          &: \idv \times \idv \\
         \opSetminus     &: \idv \times \idv
@@ -139,8 +139,8 @@ We will also follow \TLA's notation for multiline conjunctions.  Lines with the 
         \opFcn          &: \idv \times (\idv \arr \idv) \arr \idv \\
         \opExcept       &: \idv \times \idv \times \idv \arr \idv \\
         \opApp          &: \idv \times \idv \arr \idv \\
-        \opDom          &: \idv \arr \idv \\
-        \\
+        \opDom          &: \idv \arr \idv \\[7pt]
+        %
         \opInt          &: \idv \\
         \opNat          &: \idv \\
         \opIntlit_n     &: \idv \\
@@ -160,16 +160,16 @@ We will also follow \TLA's notation for multiline conjunctions.  Lines with the 
 \begin{minipage}[t]{.5\textwidth}
     \begin{align*}
         \opBoolean      &: \idv \\
-        \opCast_o       &: o \arr \idv \\
-        \\
+        \opCast_o       &: o \arr \idv \\[7pt]
+        %
         \opString       &: \idv \\
-        \opStrlit_s     &: \idv \\
-        \\
-        \opProd_n       &: \idv^n \times \idv \arr \idv \\
-        \opTup_n        &: \idv^n \times \idv \arr \idv \\
-        \\
-        \opRecord_{s_1,\dots,s_p} &: \idv^p \times \idv \arr \idv \\
-        \opRect_{s_1,\dots,s_p}   &: \idv^p \times \idv \arr \idv \\
+        \opStrlit_s     &: \idv \\[7pt]
+        %
+        \opProd_n       &: \idv^n \arr \idv \\
+        \opTup_n        &: \idv^n \arr \idv \\[7pt]
+        %
+        \opRecord_{s_1,\dots,s_n,s_{n+1}} &: \idv^{n+1} \arr \idv \\
+        \opRect_{s_1,\dots,s_n,s_{n+1}}   &: \idv^{n+1} \arr \idv \\
     \end{align*}
 \end{minipage}%
 \begin{minipage}[t]{.5\textwidth}
@@ -246,7 +246,7 @@ Except for~$\opCast_\int$ and~$\opProj_\int$, every operator below is declared i
 \item[EnumElim ($n \ge 0$)] \[
         \begin{aligned}
             &\forall \overline{a}^\idv \forall x^\idv.\, \st{ \opMem(x, \opEnum_n(\overline{a})) } \\
-            &\qquad \opMem(x, \opEnum_n(\overline{a})) \imp x = a_1 \vee \dots \vee x = a_n
+            &\qquad \opMem(x, \opEnum_n(\overline{a})) \imp \bot \vee x = a_1 \vee \dots \vee x = a_n
         \end{aligned}
     \]
 
@@ -288,17 +288,17 @@ Except for~$\opCast_\int$ and~$\opProj_\int$, every operator below is declared i
         \end{aligned}
     \]
 
-\item[SetofIntro ($p > 0$, $F : \idv^p \arr \idv$)] \[
+\item[SetofIntro ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
         \begin{aligned}
-            &\forall \overline{a}^\idv \forall \overline{y}^\idv.\, \st{ F(\overline{y}), \opSetof_p(\overline{a}, F) } \\
-            &\qquad \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_p, a_p) \imp \opMem(F(\overline{y}), \opSetof_p(\overline{a}, F))
+            &\forall \overline{a}^\idv \forall \overline{y}^\idv.\, \st{ F(\overline{y}), \opSetof_{n+1}(\overline{a}, F) } \\
+            &\qquad \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_{n+1}, a_{n+1}) \imp \opMem(F(\overline{y}), \opSetof_{n+1}(\overline{a}, F))
         \end{aligned}
     \]
 
-\item[SetofElim ($p > 0$, $F : \idv^p \arr \idv$)] \[
+\item[SetofElim ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
         \begin{aligned}
-            &\forall \overline{a}^\idv \overline{x}^\idv.\, \st{ \opMem(x, \opSetof_p(\overline{a}, F)) } \\
-            &\qquad \opMem(x, \opSetof_p(\overline{a}, F)) \imp \exists \overline{y}^\idv.\, \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_p, a_p) \wedge x = F(\overline{y})
+            &\forall \overline{a}^\idv \overline{x}^\idv.\, \st{ \opMem(x, \opSetof_{n+1}(\overline{a}, F)) } \\
+            &\qquad \opMem(x, \opSetof_{n+1}(\overline{a}, F)) \imp \exists \overline{y}^\idv.\, \opMem(y_1, a_1) \wedge \dots \wedge \opMem(y_{n+1}, a_{n+1}) \wedge x = F(\overline{y})
         \end{aligned}
     \]
 
@@ -551,7 +551,7 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[TupApp ($n \ge 0$)] \[
+\item[TupApp ($n > 0$)] \[
         \begin{aligned}
             &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
             &\qquad \wedge \opApp(\opTup_n(\overline{x}), \opIntlit_1) = x_1 \\
@@ -563,7 +563,7 @@ We omit the axioms that define the theory of arithmetic itself, because we would
 \item[ProductIntro ($n \ge 0$)] \[
         \begin{aligned}
             &\forall \overline{a}^\idv \forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}), \opProd_n(\overline{a}) } \\
-            &\qquad \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_n, a_n) \imp \opMem(\opTup_n(\overline{x}), \opProd_n(\overline{a}))
+            &\qquad \top \wedge \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_n, a_n) \imp \opMem(\opTup_n(\overline{x}), \opProd_n(\overline{a}))
         \end{aligned}
     \]
 
@@ -574,37 +574,37 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[RecordIsafcn (\rm$s_1,\dots,s_p$ are strings)] \[
+\item[RecordIsafcn (\rm$s_1,\dots,s_{n+1}$ are strings)] \[
         \begin{aligned}
             &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
             &\qquad \opIsafcn(\opRect_{\overline{s}}(\overline{x}))
         \end{aligned}
     \]
 
-\item[RecordDom (\rm$s_1,\dots,s_p$ are strings)] \[
+\item[RecordDom (\rm$s_1,\dots,s_{n+1}$ are strings)] \[
         \begin{aligned}
             &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
-            &\qquad \opDom(\opRect_{\overline{s}}(\overline{x})) = \opEnum_p(\opStrlit_{s_1}, \dots, \opStrlit_{s_p})
+            &\qquad \opDom(\opRect_{\overline{s}}(\overline{x})) = \opEnum_p(\opStrlit_{s_1}, \dots, \opStrlit_{s_{n+1}})
         \end{aligned}
     \]
 
-\item[RecordApp (\rm$s_1,\dots,s_p$ are strings)] \[
+\item[RecordApp (\rm$s_1,\dots,s_{n+1}$ are strings)] \[
         \begin{aligned}
             &\forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}) } \\
             &\qquad \wedge \opApp(\opRect_{\overline{s}}(\overline{x}), \opStrlit_{s_1}) = x_1 \\
             &\qquad \wedge \dots \\
-            &\qquad \wedge \opApp(\opRect_{\overline{s}}(\overline{x}), \opStrlit_{s_p}) = x_p
+            &\qquad \wedge \opApp(\opRect_{\overline{s}}(\overline{x}), \opStrlit_{s_{n+1}}) = x_{n+1}
         \end{aligned}
     \]
 
-\item[RectIntro (\rm$s_1,\dots,s_p$ are strings)] \[
+\item[RectIntro (\rm$s_1,\dots,s_{n+1}$ are strings)] \[
         \begin{aligned}
             &\forall \overline{a}^\idv \forall \overline{x}^\idv.\, \st{ \opRect_{\overline{s}}(\overline{x}), \opRecord_{\overline{s}}(\overline{a}) } \\
-            &\qquad \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_n, a_n) \imp \opMem(\opRect_{\overline{s}}(\overline{x}), \opRecord_{\overline{s}}(\overline{a}))
+            &\qquad \opMem(x_1, a_1) \wedge \dots \wedge \opMem(x_{n+1}, a_{n+1}) \imp \opMem(\opRect_{\overline{s}}(\overline{x}), \opRecord_{\overline{s}}(\overline{a}))
         \end{aligned}
     \]
 
-\item[RectElim (\rm$s_1,\dots,s_p$ are strings)] \[
+\item[RectElim (\rm$s_1,\dots,s_{n+1}$ are strings)] \[
         \begin{aligned}
             &\forall \overline{a}^\idv \forall x^\idv.\, \st{ \opMem(x, \opRecord_{\overline{s}}(\overline{a}) } \\
             &\qquad \opMem(x, \opRecord_{\overline{s}}(\overline{a})) \imp x = \opRect_{\overline{s}}(\opApp(x, \opStrlit_{s_1}), \dots, \opApp(x, \opStrlit_{s_n}))

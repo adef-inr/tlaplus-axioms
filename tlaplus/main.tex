@@ -145,7 +145,7 @@ We will present all axiom schemas as above, with parameters enclosed in parenthe
 The ambiguous notation $\st{ x \in e_1 : y \in e_2 }$ is resolved as $\opSetst(e_1, \lambda x : y \in e_2)$.
 
 
-    \subsection{Booleans, Strings, Tuples, Records and Sequences}
+    \subsection{Booleans, Strings, Tuples, Records, Sequences and Finite Sets}
 
 \begin{alignat*}{4}
     \opBoolean      &: \idv                                         &\qquad \tlaBOOLEAN             &\triangleq \opBoolean \\[7pt]
@@ -166,7 +166,9 @@ The ambiguous notation $\st{ x \in e_1 : y \in e_2 }$ is resolved as $\opSetst(e
     \itHead         &: \idv \arr \idv \\
     \itTail         &: \idv \arr \idv \\
     \itSubseq       &: \idv \times \idv \times \idv \arr \idv \\
-    \itSelectseq    &: \idv \times (\idv \arr \idv) \arr \idv
+    \itSelectseq    &: \idv \times (\idv \arr \idv) \arr \idv \\[7pt]
+    \itIsfiniteset  &: \idv \arr \idv \\
+    \itCard         &: \idv \arr \idv
 \end{alignat*}
 
 
@@ -454,6 +456,126 @@ We define case-expressions as a generalization of if-then-else: \[
             &\qquad \itSelectseq(\tup{}, T) = \tup{} \\
             &\qquad T(x) \imp \itSelectseq(\itAppend(s, x), T) = \itAppend(\itSelectseq(s, T), x) \\
             &\qquad \neg T(x) \imp \itSelectseq(\itAppend(s, x), T) = \itSelectseq(s, T)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Finite Sets}
+    \label{sec:finite}
+
+\begin{axioms}
+\item[SubseteqIsFinite] \[
+        \forall a, b : \itIsfiniteset(b) \wedge a \subseteq b \imp \itIsfiniteset(a)
+    \]
+
+\item[EnumIsFinite ($n \ge 0$)] \[
+        \forall a_1, \dots, a_n : \itIsfiniteset(\st{ a_1, \dots, a_n })
+    \]
+
+\item[SubsetIsFinite] \[
+        \forall a : \itIsfiniteset(a) \imp \itIsfiniteset(\tlaSUBSET\; a)
+    \]
+
+\item[UnionIsFinite] \[
+        \forall a : \itIsfiniteset(a) \wedge (\forall x : x \in a \imp \itIsfiniteset(x)) \imp \itIsfiniteset(\tlaUNION\; a)
+    \]
+
+\item[SetstIsFinite ($P : \idv \arr \idv$)] \[
+        \forall a : \itIsfiniteset(a) \imp \itIsfiniteset(\st{ x \in a : P(x) })
+    \]
+
+\item[SetofIsFinite ($F : \idv \arr \idv$)] \[
+        \forall a : \itIsfiniteset(a) \imp \itIsfiniteset(\st{ F(x) : x \in a })
+    \]
+
+\item[CupIsFinite] \[
+        \forall a, b : \itIsfiniteset(a) \wedge \itIsfiniteset(b) \imp \itIsfiniteset(a \cup b)
+    \]
+
+\item[CapIsFinite] \[
+        \forall a, b : \itIsfiniteset(a) \vee \itIsfiniteset(b) \imp \itIsfiniteset(a \cap b)
+    \]
+
+\item[SetminusIsFinite] \[
+        \forall a, b : \itIsfiniteset(a) \imp \itIsfiniteset(a \backslash\, b)
+    \]
+
+%\item[ArrowIsFinite] \[
+%        \forall a, b : \itIsfiniteset(a) \wedge \itIsfiniteset(b) \imp \itIsfiniteset(\bx{ a \arr b })
+%    \]
+
+\item[ProductIsFinite ($p > 0$)] \[
+        \begin{aligned}
+            \forall a_1, \dots, a_p, a_{p + 1} :\; &\itIsfiniteset(a_1) \wedge \dots \wedge \itIsfiniteset(a_p) \wedge \itIsfiniteset(a_{p + 1}) \imp \\
+            &\qquad \itIsfiniteset(a_1 \times \cdots \times a_p \times a_{p + 1})
+        \end{aligned}
+    \]
+
+\item[RectIsFinite (\rm$\mathsf{foo_1},\dots,\mathsf{foo_p}$ are strings)] \[
+        \begin{aligned}
+            \forall a_1, \dots, a_p :\; &\itIsfiniteset(a_1) \wedge \dots \wedge \itIsfiniteset(a_p) \imp \\
+            &\qquad \itIsfiniteset(\bx{ \mathsf{foo_1} : a_1, \dots, \mathsf{foo_p} : a_p })
+        \end{aligned}
+    \]
+
+\item[RangeIsFinite] \[
+        \forall a, b : a \in \itInt \wedge b \in \itInt \imp \itIsfiniteset(a \ltwodots b)
+    \]
+
+\item[CardTyping] \[
+        \forall x : \itIsfiniteset(x) \imp \itCard(x) \in \itNat
+    \]
+
+\item[SubseteqCard] \[
+        \forall a, b : \itIsfiniteset(b) \wedge a \subseteq b \imp \begin{aligned}[t]
+            &\wedge \itCard(a) \le \itCard(b) \\
+            &\wedge \itCard(a) = \itCard(b) \imp a = b
+        \end{aligned}
+    \]
+
+\item[EnumCard ($n \ge 0$)] \[
+        \forall a_1, \dots, a_n : \itCard(\st{ a_1, \dots, a_n }) = n
+    \]
+
+\item[CupCard] \[
+        \forall a, b : \itIsfiniteset(a) \wedge \itIsfiniteset(b) \imp \itCard(a \cup b) = \itCard(a) + \itCard(b) - \itCard(a \cap b)
+    \]
+
+\item[CapCard] \[
+        \forall a, b : \itIsfiniteset(a) \imp \begin{aligned}[t]
+            &\wedge \itCard(a \cap b) = \itCard(b \cap a) \\
+            &\wedge \itCard(a \cap b) = \itCard(a) - \itCard(a \backslash\, b)
+        \end{aligned}
+    \]
+
+\item[SetminusCard] \[
+        \forall a, b : \itIsfiniteset(a) \imp \itCard(a \backslash\, b) = \itCard(a) - \itCard(a \cap b)
+    \]
+
+%\item[ArrowCard] \[
+%        \forall a, b : \itIsfiniteset(a) \wedge \itIsfiniteset(b) \imp \itCard(\bx{ a \arr b }) = \itCard(b) \string^ \itCard(a)
+%    \]
+
+\item[ProductCard ($p > 0$)] \[
+        \begin{aligned}
+            \forall a_1, \dots, a_p, a_{p + 1} :\; &\itIsfiniteset(a_1) \wedge \dots \wedge \itIsfiniteset(a_p) \wedge \itIsfiniteset(a_{p + 1}) \imp \\
+            &\qquad \itCard(a_1 \times \cdots \times a_p \times a_{p + 1}) = \itCard(a_1) \times \cdots \times \itCard(a_p) \times \itCard(a_{p + 1})
+        \end{aligned}
+    \]
+
+\item[RectCard (\rm$\mathsf{foo_1},\dots,\mathsf{foo_p}$ are strings)] \[
+        \begin{aligned}
+            \forall a_1, \dots, a_p :\; &\itIsfiniteset(a_1) \wedge \dots \wedge \itIsfiniteset(a_p) \imp \\
+            &\qquad \itCard(\bx{ \mathsf{foo_1} : a_1, \dots, \mathsf{foo_p} : a_p }) = \itCard(a_1) \times \cdots \times \itCard(a_p)
+        \end{aligned}
+    \]
+
+\item[RangeCard] \[
+        \forall a, b : a \in \itInt \wedge b \in \itInt \imp \begin{aligned}[t]
+            &\wedge a \le b \imp \itCard(a \ltwodots b) = b - a + 1 \\
+            &\wedge a > b \imp \itCard(a \ltwodots b) = 0
         \end{aligned}
     \]
 

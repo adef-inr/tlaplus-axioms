@@ -206,6 +206,34 @@ Except for~$\opCast_\int$ and~$\opProj_\int$, every operator below is declared i
 \end{align*}
 
 
+    \subsection{Uninterpreted and Interpreted Finite Sets}
+
+Only the solver CVC4 provides native support for finite sets and cardinalities.  For every sort~$s$, there is a sort~$\FSet(s)$ for finite sets over elements of the sort~$s$.  Every operator on the right below is implicitly declared by CVC4.
+
+\begin{minipage}[t]{.4\textwidth}
+    \begin{align*}
+        \opIsFS &: \idv \arr o \\
+        \opCard &: \idv \arr \idv \\[7pt]
+        %
+        \opCast_{\FSet(s)}  &: \FSet(s) \arr \idv \\
+        \opProj_{\FSet(s)}  &: \idv \arr \FSet(s)
+    \end{align*}
+\end{minipage}%
+\begin{minipage}[t]{.6\textwidth}
+    \begin{align*}
+        \opFSCard_s         &: \FSet(s) \arr \int \\
+        \opFSMem_s          &: s \times \FSet(s) \arr o \\
+        \opFSSubseteq_s     &: \FSet(s) \times \FSet(s) \arr o \\
+        \opFSEmpty_s        &: \FSet(s) \\
+        \opFSSingleton_s    &: s \arr \FSet(s) \\
+        \opFSAdd_s          &: s \times \FSet(s) \arr \FSet(s) \\
+        \opFSCup_s          &: \FSet(s) \times \FSet(s) \arr \FSet(s) \\
+        \opFSCap_s          &: \FSet(s) \times \FSet(s) \arr \FSet(s) \\
+        \opFSSetminus_s     &: \FSet(s) \times \FSet(s) \arr \FSet(s)
+    \end{align*}
+\end{minipage}
+
+
 \newpage
 \section{Axioms}
 \label{sec:axioms}
@@ -854,6 +882,172 @@ We omit the axioms that define the theory of arithmetic itself, because we would
 \end{axioms}
 
 
+    \subsection{Finite Sets (Uninterpreted)}
+    \label{subsec:fsets_uninterpreted}
+
+\begin{axioms}
+\item[SubseteqIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opSubseteq(a, b) } \\
+            &\qquad \opIsFS(b) \wedge \opSubseteq(a, b) \imp \opIsFS(a)
+        \end{aligned}
+    \]
+
+\item[EnumIsFinite ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
+            &\qquad \opIsFS(\opEnum_n(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[SubsetIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv.\, \st{ \opPower(a) } \\
+            &\qquad \opIsFS(a) \imp \opIsFS(\opPower(a))
+        \end{aligned}
+    \]
+
+\item[UnionIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv.\, \st{ \opUnion(a) } \\
+            &\qquad \opIsFS(a) \wedge (\forall x^\idv.\, \opMem(x, a) \imp \opIsFS(x)) \imp \opIsFS(\opUnion(a))
+        \end{aligned}
+    \]
+
+\item[SetstIsFinite ($P : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall a^\idv.\, \st{ \opSetst(a, P) } \\
+            &\qquad \opIsFS(a) \imp \opIsFS(\opSetst(a, P))
+        \end{aligned}
+    \]
+
+\item[SetofIsFinite ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opSetof_{n+1}(\overline{a}, F) } \\
+            &\qquad \opIsFS(a_1) \wedge \cdots \wedge \opIsFS(a_{n+1}) \imp \opIsFS(\opSetof_{n+1}(\overline{a}, F))
+        \end{aligned}
+    \]
+
+\item[CupIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv \forall^\idv b.\, \st{ \opCup(a, b) } \\
+            &\qquad \opIsFS(a) \wedge \opIsFS(b) \imp \opIsFS(\opCup(a, b))
+        \end{aligned}
+    \]
+
+\item[CapIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCap(a, b) } \\
+            &\qquad \opIsFS(a) \vee \opIsFS(b) \imp \opIsFS(\opCap(a, b))
+        \end{aligned}
+    \]
+
+\item[SetminusIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opSetminus(a, b) } \\
+            &\qquad \opIsFS(a) \imp \opIsFS(\opSetminus(a, b))
+        \end{aligned}
+    \]
+
+\item[ProductIsFinite ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opProd_n(\overline{a}) } \\
+            &\qquad \top \wedge \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_n) \imp \opIsFS(\opProd_n(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[RectIsFinite (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a}) } \\
+            &\qquad \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_{n+1}) \imp \opIsFS(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a}))
+        \end{aligned}
+    \]
+
+\item[RangeIsFinite] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opRange(a, b) } \\
+            &\qquad \opMem(a, \opInt) \wedge \opMem(b, \opInt) \imp \opIsFS(\opRange(a, b))
+        \end{aligned}
+    \]
+
+\item[CardTyping] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opCard(x) } \\
+            &\qquad \opIsFS(x) \imp \opMem(\opCard(x), \opNat)
+        \end{aligned}
+    \]
+
+\item[SubseteqCard] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opSubseteq(a, b) } \\
+            &\qquad \opIsFS(b) \wedge \opSubseteq(a, b) \imp \begin{aligned}[t]
+                &\wedge \opLe(\opCard(a), \opCard(b)) \\
+                &\wedge \opCard(a) = \opCard(b) \imp a = b
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[EnumCard ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
+            &\qquad \opCard(\opEnum_n(\overline{a})) = \opIntlit_n
+        \end{aligned}
+    \]
+
+\item[CupCard] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opCup(a, b)) } \\
+            &\qquad \opIsFS(a) \wedge \opIsFS(b) \\
+            &\qquad \imp \opCard(\opCup(a, b)) = \opMinus(\opPlus(\opCard(a), \opCard(b)), \opCard(\opCap(a, b)))
+        \end{aligned}
+    \]
+
+\item[CapCard] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opCap(a, b)) } \\
+            &\qquad \begin{aligned}[t]
+                &\wedge \opIsFS(a) \imp \opCard(\opCap(a, b)) = \opMinus(\opCard(a), \opCard(\opSetminus(a, b))) \\
+                &\wedge \opIsFS(b) \imp \opCard(\opCap(a, b)) = \opMinus(\opCard(b), \opCard(\opSetminus(b, a)))
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[SetminusCard] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opSetminus(a, b)) } \\
+            &\qquad \opIsFS(a) \imp \opCard(\opSetminus(a, b)) = \opMinus(\opCard(a), \opCard(\opCap(a, b)))
+        \end{aligned}
+    \]
+
+\item[ProductCard ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv. \st{ \opCard(\opProd_n(\overline{a})) } \\
+            &\qquad \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_n) \\
+            &\qquad \imp \opCard(\opProd_n(\overline{a})) = \opTimes(\opIntlit_1, \opTimes(\opCard(a_1), \opTimes(\dots, \opCard(a_n)\dots)))
+        \end{aligned}
+    \]
+
+\item[RectCard (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv. \st{ \opCard(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a})) } \\
+            &\qquad \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_{n+1}) \\
+            &\qquad \imp \opCard(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a})) = \opTimes(\opCard(a_1), \opTimes(\dots, \opCard(a_{n+1})\dots))
+        \end{aligned}
+    \]
+
+\item[RangeCard] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opRange(a, b)) } \\
+            &\qquad \opMem(a, \opInt) \wedge \opMem(b, \opInt) \imp \begin{aligned}[t]
+                &\wedge \opLe(a, b) \imp \opCard(\opRange(a, b)) = \opPlus(\opMinus(b, a) + 1) \\
+                &\wedge \neg \opLe(a, b) \imp \opCard(\opRange(a, b)) = \opIntlit_0
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
     \subsection{Integer Arithmetic (Interpreted)}
     \label{subsec:ints_interpreted}
 
@@ -1142,6 +1336,235 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \begin{aligned}
             &\forall \overline{x}^\idv.\, \st{ \opTup_n(\overline{x}) } \\
             &\qquad \opLen(\opTup_n(\overline{x})) = \opCast_\int(n)
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Finite Sets (With Interpreted Arithmetic)}
+    \label{subsec:fsets_interpreted}
+
+\begin{axioms}
+\item[SubseteqCard$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opSubseteq(a, b) } \\
+            &\qquad \opIsFS(b) \wedge \opSubseteq(a, b) \imp \begin{aligned}[t]
+                &\wedge \opProj_\int(\opCard(a)) \le \opProj_\int(\opCard(b)) \\
+                &\wedge \opProj_\int(\opCard(a)) = \opProj_\int(\opCard(b)) \imp a = b
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[EnumCard$_\int$ ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
+            &\qquad \opCard(\opEnum_n(\overline{a})) = \opCast_\int(n)
+        \end{aligned}
+    \]
+
+\item[CupCard$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opCup(a, b)) } \\
+            &\qquad \opIsFS(a) \wedge \opIsFS(b) \\
+            &\qquad \imp \opCard(\opCup(a, b)) = \opCast_\int((\opProj_\int(\opCard(a)) + \opProj_\int(\opCard(b))) - \opProj_\int(\opCard(\opCap(a, b))))
+        \end{aligned}
+    \]
+
+\item[CapCard$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opCap(a, b)) } \\
+            &\qquad \begin{aligned}[t]
+                &\wedge \opIsFS(a) \imp \opCard(\opCap(a, b)) = \opCast_\int(\opProj_\int(\opCard(a)) - \opProj_\int(\opCard(\opSetminus(a, b)))) \\
+                &\wedge \opIsFS(b) \imp \opCard(\opCap(a, b)) = \opCast_\int(\opProj_\int(\opCard(b)) - \opProj_\int(\opCard(\opSetminus(b, a))))
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\item[SetminusCard$_\int$] \[
+        \begin{aligned}
+            &\forall a^\idv \forall b^\idv.\, \st{ \opCard(\opSetminus(a, b)) } \\
+            &\qquad \opIsFS(a) \imp \opCard(\opSetminus(a, b)) = \opCast_\int(\opProj_\int(\opCard(a)) - \opProj_\int(\opCard(\opCap(a, b))))
+        \end{aligned}
+    \]
+
+\item[ProductCard$_\int$ ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv. \st{ \opCard(\opProd_n(\overline{a})) } \\
+            &\qquad \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_n) \\
+            &\qquad \imp \opCard(\opProd_n(\overline{a})) = \opCast_\int(1 \times (\opProj_\int(\opCard(a_1)) \times (\dots \times \opProj_\int(\opCard(a_n)) \dots)))
+        \end{aligned}
+    \]
+
+\item[RectCard$_\int$ (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^\idv. \st{ \opCard(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a})) } \\
+            &\qquad \opIsFS(a_1) \wedge \dots \wedge \opIsFS(a_{n+1}) \\
+            &\qquad \imp \opCard(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{a})) = \opCast_\int(\opProj_\int(\opCard(a_1)) \times (\dots \times \opProj_\int(\opCard(a_{n+1})) \dots))
+        \end{aligned}
+    \]
+
+\item[RangeCard$_\int$] \[
+        \begin{aligned}
+            &\forall a^\int \forall b^\int.\, \st{ \opCard(\opRange(\opCast_\int(a), \opCast_\int(b))) } \\
+            &\qquad \begin{aligned}[t]
+                &\wedge a \le b \imp \opCard(\opRange(\opCast_\int(a), \opCast_\int(b))) = \opCast_\int(b - a + 1) \\
+                &\wedge a > b \imp \opCard(\opRange(\opCast_\int(a), \opCast_\int(b))) = \opCast_\int(0)
+            \end{aligned}
+        \end{aligned}
+    \]
+
+\end{axioms}
+
+
+    \subsection{Finite Sets (Interpreted)}
+    \label{subsec:fsets_interpreted}
+
+\begin{axioms}
+\item[FSCastInjective] \[
+        \begin{aligned}
+            &\forall x^{\FSet(s)}.\, \st{ \opCast_{\FSet(s)}(x) } \\
+            &\qquad x = \opProj_{\FSet(s)}(\opCast_{\FSet(s)}(x))
+        \end{aligned}
+    \]
+
+\item[FSIsFiniteIntro] \[
+        \begin{aligned}
+            &\forall x^{\FSet(s)}.\, \st{ \opCast_{\FSet(s)}(x) } \\
+            &\qquad \opIsFS(\opCast_{\FSet(s)}(x))
+        \end{aligned}
+    \]
+
+\item[FSIsFiniteElim] \[
+        \begin{aligned}
+            &\forall x^\idv.\, \st{ \opIsFS(x) } \\
+            &\qquad \opIsFS(x) \imp x = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(x))
+        \end{aligned}
+    \]
+
+\item[FSCardTyping] \[
+        \begin{aligned}
+            &\forall x^{\FSet(s)}.\, \st{ \opCard(\opCast_{\FSet(s)}(x)) } \\
+            &\qquad \opCard(\opCast_{\FSet(s)}(x)) = \opCast_\int(\opFSCard_s(x))
+        \end{aligned}
+    \]
+
+\item[FSMemTyping] \[
+        \begin{aligned}
+            &\forall x_1^s \forall x_2^{\FSet(s)}.\, \st{ \opMem(\opCast_s(x_1), \opCast_{\FSet(s)}(x_2)) } \\
+            &\qquad \opMem(\opCast_s(x_1), \opCast_{\FSet(s)}(x_2)) \eqv \opFSMem_s(x_1, x_2)
+        \end{aligned}
+    \]
+
+\item[FSSubseteqTyping] \[
+        \begin{aligned}
+            &\forall x_1^{\FSet(s)} \forall x_2^{\FSet(s)}.\, \st{ \opSubseteq(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) } \\
+            &\qquad \opSubseteq(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) \eqv \opFSSubseteq(x_1, x_2)
+        \end{aligned}
+    \]
+
+\item[FSEmptyTyping] \[
+        \opEnum_0 = \opCast_{\FSet(s)}(\opFSEmpty_s)
+    \]
+
+\item[FSEnumTyping ($n > 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^s.\, \st{ \opEnum_n(\overline{\opCast_s(a)}) } \\
+            &\qquad \opEnum_n(\overline{\opCast_s(a)}) = \opCast_{\FSet(s)}(\opFSAdd_s(a_1, (\dots, \opFSAdd(a_{n-1}, \opFSSingleton(a_n)) \dots)))
+        \end{aligned}
+    \]
+
+\item[FSCupTyping] \[
+        \begin{aligned}
+            &\forall x_1^{\FSet(s)} \forall x_2^{\FSet(s)}.\, \st{ \opCup(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) } \\
+            &\qquad \opCup(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) = \opCast_{\FSet(s)}(\opFSCup(x_1, x_2))
+        \end{aligned}
+    \]
+
+\item[FSCapTyping] \[
+        \begin{aligned}
+            &\forall x_1^{\FSet(s)} \forall x_2^{\FSet(s)}.\, \st{ \opCap(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) } \\
+            &\qquad \opCap(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) = \opCast_{\FSet(s)}(\opFSCap(x_1, x_2))
+        \end{aligned}
+    \]
+
+\item[FSSetminusTyping] \[
+        \begin{aligned}
+            &\forall x_1^{\FSet(s)} \forall x_2^{\FSet(s)}.\, \st{ \opSetminus(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) } \\
+            &\qquad \opSetminus(\opCast_{\FSet(s)}(x_1), \opCast_{\FSet(s)}(x_2)) = \opCast_{\FSet(s)}(\opFSSetminus(x_1, x_2))
+        \end{aligned}
+    \]
+
+\item[FSSubsetTyping] \[
+        \begin{aligned}
+            &\forall a^{\FSet(s)}.\, \st{ \opPower(\opCast_{\FSet(s)}(a)) } \\
+            &\qquad \opPower(\opCast_{\FSet(s)}(a)) = \opCast_{\FSet(\FSet(s))}(\opProj_{\FSet(\FSet(s))}(\opPower(\opCast_{\FSet(s)}(a))))
+        \end{aligned}
+    \]
+
+\item[FSUnionTyping] \[
+        \begin{aligned}
+            &\forall a^{\FSet(\FSet(s))}.\, \st{ \opUnion(\opCast_{\FSet(\FSet(s))}(a)) } \\
+            &\qquad \opUnion(\opCast_{\FSet(\FSet(s))}(a)) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opUnion(\opCast_{\FSet(\FSet(s))}(a))))
+        \end{aligned}
+    \]
+
+\item[FSSetstTyping ($P : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall a^{\FSet(s)}.\, \st{ \opSetst(\opCast_{\FSet(s)}(a), P) } \\
+            &\qquad \opSetst(\opCast_{\FSet(s)}(a), P) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetst(\opCast_{\FSet(s)}(a), P)))
+        \end{aligned}
+    \]
+
+\item[FSSetofTyping ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) } \\
+            &\qquad \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetof(\overline{\opCast_{\FSet(s)}(a)}, F)))
+        \end{aligned}
+    \]
+
+\item[FSProductTyping ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) } \\
+            &\qquad \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opProd_n(\overline{\opCast_{\FSet(s)}(a)})))
+        \end{aligned}
+    \]
+
+\item[FSRectTyping (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) } \\
+            &\qquad \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)})))
+        \end{aligned}
+    \]
+
+\item[FSRangeTyping] \[
+        \begin{aligned}
+            &\forall a^\int \forall b^\int.\, \st{ \opRange(\opCast_\int(a), \opCast_\int(b)) } \\
+            &\qquad \opRange(\opCast_\int(a), \opCast_\int(b)) = \opCast_{\FSet(\int)}(\opProj_{\FSet(\int)}(\opRange(\opCast_\int(a), \opCast_\int(b))))
+        \end{aligned}
+    \]
+
+\item[FSProductCard ($n \ge 0$)] \[
+        \begin{aligned}
+            &\forall \overline{a}^{\FSet(s)}. \st{ \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) } \\
+            &\qquad \opFSCard(\opProj_{\FSet(s)}(\opProd_n(\overline{\opCast_{\FSet(s)}(a)}))) = 1 \times (\opFSCard(a_1) \times (\dots \times \opFSCard(a_n) \dots))
+        \end{aligned}
+    \]
+
+\item[FSRectCard (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+        \begin{aligned}
+            &\forall \overline{a}^{\FSet(s)}. \st{ \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}}) } \\
+            &\qquad \imp \opFSCard(\opProj_{\FSet(s)}(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCard_{\FSet(s)}(a)}))) = \opFSCard(a_1) \times (\dots \times \opFSCard(a_{n+1}) \dots)
+        \end{aligned}
+    \]
+
+\item[FSRangeCard] \[
+        \begin{aligned}
+            &\forall a^\int \forall b^\int.\, \st{ \opRange(\opCast_\int(a), \opCast_\int(b)) } \\
+            &\qquad \begin{aligned}[t]
+                &\wedge a \le b \imp \opFSCard(\opProj_{\FSet(\int)}(\opRange(\opCast_\int(a), \opCast_\int(b)))) = b - a + 1 \\
+                &\wedge a > b \imp \opFSCard(\opProj_{\FSet(\int)}(\opRange(\opCast_\int(a), \opCast_\int(b)))) = 0
+            \end{aligned}
         \end{aligned}
     \]
 

@@ -512,7 +512,7 @@ We omit the axioms that define the theory of arithmetic itself, because we would
 \item[DivTyping] \[
         \begin{aligned}
             &\forall x^\idv \forall y^\idv.\, \st{ \opDiv(x, y) } \\
-            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \wedge y \neq \opIntlit_0 \imp \opMem(\opDiv(x, y), \opInt)
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opNat) \wedge y \neq \opIntlit_0 \imp \opMem(\opDiv(x, y), \opNat)
         \end{aligned}
     \]
 
@@ -1097,14 +1097,14 @@ We omit the axioms that define the theory of arithmetic itself, because we would
 \item[IntTimesTyping] \[
         \begin{aligned}
             &\forall z_1^\int \forall z_2^\int.\, \st{ \opTimes(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
-            &\qquad z_2 \neq 0 \imp \opTimes(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \times z_2)
+            &\qquad \opTimes(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \times z_2)
         \end{aligned}
     \]
 
 \item[IntDivTyping] \[
         \begin{aligned}
             &\forall z_1^\int \forall z_2^\int.\, \st{ \opDiv(\opCast_\int(z_1), \opCast_\int(z_2)) } \\
-            &\qquad \opDiv(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \div z_2)
+            &\qquad z_2 > 0 \imp \opDiv(\opCast_\int(z_1), \opCast_\int(z_2)) = \opCast_\int(z_1 \div z_2)
         \end{aligned}
     \]
 

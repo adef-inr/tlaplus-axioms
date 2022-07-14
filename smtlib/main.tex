@@ -808,23 +808,12 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[SubseqLen$_1$] \[
+\item[SubseqLen] \[
         \begin{aligned}
             &\forall s^\idv \forall x^\idv \forall y^\idv.\, \st{ \opSubseq(s, x, y) } \\
-            &\qquad \wedge \opMem(x, \opInt) \\
-            &\qquad \wedge \opMem(y, \opInt) \\
-            &\qquad \wedge \opLe(x, \opPlus(y, \opIntlit_1)) \\
-            &\qquad \imp \opLen(\opSubseq(s, x, y)) = \opMinus(\opPlus(y, \opIntlit_1), x)
-        \end{aligned}
-    \]
-
-\item[SubseqLen$_2$] \[
-        \begin{aligned}
-            &\forall s^\idv \forall x^\idv \forall y^\idv.\, \st{ \opSubseq(s, x, y) } \\
-            &\qquad \wedge \opMem(x, \opInt) \\
-            &\qquad \wedge \opMem(y, \opInt) \\
-            &\qquad \wedge \neg \opLe(x, \opPlus(y, \opIntlit_1)) \\
-            &\qquad \imp \opLen(\opSubseq(s, x, y)) = \opIntlit_0
+            &\qquad \opMem(x, \opInt) \wedge \opMem(y, \opInt) \imp \\
+            &\qquad \wedge \opLe(x, \opPlus(y, \opIntlit_1)) \imp \opLen(\opSubseq(s, x, y)) = \opMinus(\opPlus(y, \opIntlit_1), x) \\
+            &\qquad \wedge \neg \opLe(x, \opPlus(y, \opIntlit_1)) \imp \opLen(\opSubseq(s, x, y)) = \opIntlit_0
         \end{aligned}
     \]
 
@@ -855,13 +844,22 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[SelectseqElim ($T : \idv \arr o$)] \[
+\item[SelectseqApp ($T : \idv \arr o$)] \[
         \begin{aligned}
             &\forall s^\idv \forall x^\idv.\, \st{ \opApp(\opSelectseq(s, T), x) } \\
-            &\qquad \wedge \opMem(x, \opInt) \\
-            &\qquad \wedge \opLe(\opIntlit_1, x) \\
-            &\qquad \wedge \opLe(x, \opLen(\opSelectseq(s, T))) \\
-            &\qquad \imp T(\opApp(\opSelectseq(s, T), x))
+            &\qquad \opMem(x, \opDom(\opSelectseq(s, T))) \imp T(\opApp(\opSelectseq(s, T), x))
+        \end{aligned}
+    \]
+
+\item[SelectseqNil ($T : \idv \arr o$)] \[
+        \opSelectseq(\opTup_0, T) = \opTup_0
+    \]
+
+\item[SelectseqAppend ($T : \idv \arr o$)] \[
+        \begin{aligned}
+            &\forall s^\idv \forall x^\idv.\, \st{ \opSelectseq(\opAppend(s, x), T) } \\
+            &\qquad \wedge T(x) \imp \opSelectseq(\opAppend(s, x), T) = \opAppend(\opSelectseq(s, T), x) \\
+            &\qquad \wedge \neg T(x) \imp \opSelectseq(\opAppend(s, x), T) = \opSelectseq(s, T)
         \end{aligned}
     \]
 
@@ -987,10 +985,14 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[EnumCard ($n \ge 0$)] \[
+\item[EmptyCard] \[
+        \opCard(\opEnum_0) = \opIntlit_0
+    \]
+
+\item[SingletonCard] \[
         \begin{aligned}
-            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
-            &\qquad \opCard(\opEnum_n(\overline{a})) = \opIntlit_n
+            &\forall x^\idv.\, \st{ \opEnum_1(x) } \\
+            &\qquad \opCard(\opEnum_1(x)) = \opIntlit_1
         \end{aligned}
     \]
 
@@ -1290,19 +1292,11 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[SubseqLen$_{\int,1}$] \[
+\item[SubseqLen$_\int$] \[
         \begin{aligned}
             &\forall s^\idv \forall x^\int \forall y^\int.\, \st{ \opSubseq(s, \opCast_\int(x), \opCast_\int(y)) } \\
-            &\qquad \wedge x \le y + 1 \\
-            &\qquad \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int((y + 1) - x)
-        \end{aligned}
-    \]
-
-\item[SubseqLen$_{\int,2}$] \[
-        \begin{aligned}
-            &\forall s^\idv \forall x^\int \forall y^\int.\, \st{ \opSubseq(s, \opCast_\int(x), \opCast_\int(y)) } \\
-            &\qquad \wedge x > y + 1 \\
-            &\qquad \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int(0)
+            &\qquad \wedge x \le y + 1 \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int((y + 1) - x) \\
+            &\qquad \wedge x > y + 1 \imp \opLen(\opSubseq(s, \opCast_\int(x), \opCast_\int(y))) = \opCast_\int(0)
         \end{aligned}
     \]
 
@@ -1320,15 +1314,6 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \begin{aligned}
             &\forall s^\idv.\, \st{ \opSelectseq(s, T) } \\
             &\qquad \opMem(\opLen(s), \opNat) \imp \opProj_\int(\opLen(\opSelectseq(s, T))) \le \opProj_\int(\opLen(s))
-        \end{aligned}
-    \]
-
-\item[SelectseqElim$_\int$ ($T : \idv \arr o$)] \[
-        \begin{aligned}
-            &\forall s^\idv \forall x^\int.\, \st{ \opApp(\opSelectseq(s, T), \opCast_\int(x)) } \\
-            &\qquad \wedge 1 \le x \\
-            &\qquad \wedge x \le \opProj_\int(\opLen(\opSelectseq(s, T))) \\
-            &\qquad \imp T(\opApp(\opSelectseq(s, T), \opCast_\int(x)))
         \end{aligned}
     \]
 
@@ -1356,10 +1341,14 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[EnumCard$_\int$ ($n \ge 0$)] \[
+\item[EmptyCard] \[
+        \opCard(\opEnum_0) = \opCast_\int(0)
+    \]
+
+\item[SingletonCard] \[
         \begin{aligned}
-            &\forall \overline{a}^\idv.\, \st{ \opEnum_n(\overline{a}) } \\
-            &\qquad \opCard(\opEnum_n(\overline{a})) = \opCast_\int(n)
+            &\forall x^\idv.\, \st{ \opEnum_1(x) } \\
+            &\qquad \opCard(\opEnum_1(x)) = \opCast_\int(1)
         \end{aligned}
     \]
 
@@ -1495,54 +1484,54 @@ We omit the axioms that define the theory of arithmetic itself, because we would
         \end{aligned}
     \]
 
-\item[FSSubsetTyping] \[
-        \begin{aligned}
-            &\forall a^{\FSet(s)}.\, \st{ \opPower(\opCast_{\FSet(s)}(a)) } \\
-            &\qquad \opPower(\opCast_{\FSet(s)}(a)) = \opCast_{\FSet(\FSet(s))}(\opProj_{\FSet(\FSet(s))}(\opPower(\opCast_{\FSet(s)}(a))))
-        \end{aligned}
-    \]
-
-\item[FSUnionTyping] \[
-        \begin{aligned}
-            &\forall a^{\FSet(\FSet(s))}.\, \st{ \opUnion(\opCast_{\FSet(\FSet(s))}(a)) } \\
-            &\qquad \opUnion(\opCast_{\FSet(\FSet(s))}(a)) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opUnion(\opCast_{\FSet(\FSet(s))}(a))))
-        \end{aligned}
-    \]
-
-\item[FSSetstTyping ($P : \idv \arr o$)] \[
-        \begin{aligned}
-            &\forall a^{\FSet(s)}.\, \st{ \opSetst(\opCast_{\FSet(s)}(a), P) } \\
-            &\qquad \opSetst(\opCast_{\FSet(s)}(a), P) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetst(\opCast_{\FSet(s)}(a), P)))
-        \end{aligned}
-    \]
-
-\item[FSSetofTyping ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
-        \begin{aligned}
-            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) } \\
-            &\qquad \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetof(\overline{\opCast_{\FSet(s)}(a)}, F)))
-        \end{aligned}
-    \]
-
-\item[FSProductTyping ($n \ge 0$)] \[
-        \begin{aligned}
-            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) } \\
-            &\qquad \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opProd_n(\overline{\opCast_{\FSet(s)}(a)})))
-        \end{aligned}
-    \]
-
-\item[FSRectTyping (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
-        \begin{aligned}
-            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) } \\
-            &\qquad \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)})))
-        \end{aligned}
-    \]
-
-\item[FSRangeTyping] \[
-        \begin{aligned}
-            &\forall a^\int \forall b^\int.\, \st{ \opRange(\opCast_\int(a), \opCast_\int(b)) } \\
-            &\qquad \opRange(\opCast_\int(a), \opCast_\int(b)) = \opCast_{\FSet(\int)}(\opProj_{\FSet(\int)}(\opRange(\opCast_\int(a), \opCast_\int(b))))
-        \end{aligned}
-    \]
+%\item[FSSubsetTyping] \[
+%        \begin{aligned}
+%            &\forall a^{\FSet(s)}.\, \st{ \opPower(\opCast_{\FSet(s)}(a)) } \\
+%            &\qquad \opPower(\opCast_{\FSet(s)}(a)) = \opCast_{\FSet(\FSet(s))}(\opProj_{\FSet(\FSet(s))}(\opPower(\opCast_{\FSet(s)}(a))))
+%        \end{aligned}
+%    \]
+%
+%\item[FSUnionTyping] \[
+%        \begin{aligned}
+%            &\forall a^{\FSet(\FSet(s))}.\, \st{ \opUnion(\opCast_{\FSet(\FSet(s))}(a)) } \\
+%            &\qquad \opUnion(\opCast_{\FSet(\FSet(s))}(a)) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opUnion(\opCast_{\FSet(\FSet(s))}(a))))
+%        \end{aligned}
+%    \]
+%
+%\item[FSSetstTyping ($P : \idv \arr o$)] \[
+%        \begin{aligned}
+%            &\forall a^{\FSet(s)}.\, \st{ \opSetst(\opCast_{\FSet(s)}(a), P) } \\
+%            &\qquad \opSetst(\opCast_{\FSet(s)}(a), P) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetst(\opCast_{\FSet(s)}(a), P)))
+%        \end{aligned}
+%    \]
+%
+%\item[FSSetofTyping ($n \ge 0$, $F : \idv^{n+1} \arr \idv$)] \[
+%        \begin{aligned}
+%            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) } \\
+%            &\qquad \opSetof(\overline{\opCast_{\FSet(s)}(a)}, F) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opSetof(\overline{\opCast_{\FSet(s)}(a)}, F)))
+%        \end{aligned}
+%    \]
+%
+%\item[FSProductTyping ($n \ge 0$)] \[
+%        \begin{aligned}
+%            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) } \\
+%            &\qquad \opProd_n(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opProd_n(\overline{\opCast_{\FSet(s)}(a)})))
+%        \end{aligned}
+%    \]
+%
+%\item[FSRectTyping (\rm$\mathsf{foo_1},\dots,\mathsf{foo_{n+1}}$ are strings)] \[
+%        \begin{aligned}
+%            &\forall \overline{a}^{\FSet(s)}.\, \st{ \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) } \\
+%            &\qquad \opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)}) = \opCast_{\FSet(s)}(\opProj_{\FSet(s)}(\opRect_{\mathsf{foo_1}, \dots, \mathsf{foo_{n+1}}}(\overline{\opCast_{\FSet(s)}(a)})))
+%        \end{aligned}
+%    \]
+%
+%\item[FSRangeTyping] \[
+%        \begin{aligned}
+%            &\forall a^\int \forall b^\int.\, \st{ \opRange(\opCast_\int(a), \opCast_\int(b)) } \\
+%            &\qquad \opRange(\opCast_\int(a), \opCast_\int(b)) = \opCast_{\FSet(\int)}(\opProj_{\FSet(\int)}(\opRange(\opCast_\int(a), \opCast_\int(b))))
+%        \end{aligned}
+%    \]
 
 \item[FSProductCard ($n \ge 0$)] \[
         \begin{aligned}

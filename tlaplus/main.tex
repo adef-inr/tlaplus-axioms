@@ -535,8 +535,12 @@ We define case-expressions as a generalization of if-then-else: \[
         \end{aligned}
     \]
 
-\item[EnumCard ($n \ge 0$)] \[
-        \forall a_1, \dots, a_n : \itCard(\st{ a_1, \dots, a_n }) = n
+\item[EmptyCard] \[
+        \itCard(\st{}) = 0
+    \]
+
+\item[SingletonCard] \[
+        \forall x : \itCard(\st{ x }) = 1
     \]
 
 \item[CupCard] \[
